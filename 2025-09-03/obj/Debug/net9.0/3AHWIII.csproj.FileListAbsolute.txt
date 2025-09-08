@@ -1,0 +1,14 @@
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\bin\Debug\net9.0\3AHWIII.exe
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\bin\Debug\net9.0\3AHWIII.deps.json
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\bin\Debug\net9.0\3AHWIII.runtimeconfig.json
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\bin\Debug\net9.0\3AHWIII.dll
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\bin\Debug\net9.0\3AHWIII.pdb
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\obj\Debug\net9.0\3AHWIII.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\obj\Debug\net9.0\3AHWIII.AssemblyInfoInputs.cache
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\obj\Debug\net9.0\3AHWIII.AssemblyInfo.cs
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\obj\Debug\net9.0\3AHWIII.csproj.CoreCompileInputs.cache
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\obj\Debug\net9.0\3AHWIII.dll
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\obj\Debug\net9.0\refint\3AHWIII.dll
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\obj\Debug\net9.0\3AHWIII.pdb
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\obj\Debug\net9.0\3AHWIII.genruntimeconfig.cache
+C:\Users\Mo\OneDrive\Dokumente\Benutzer\Moritz Breuss\Schule\HTL Spengergasse\3. Klasse\Softwareentwicklung und Projektmanagment\3AHWIII\2025-09-03\obj\Debug\net9.0\ref\3AHWIII.dll
