@@ -1,3 +1,14 @@
+## Ignore everything in 2025-09-03 except the essential files
+2025-09-03/*
+!2025-09-03/MixedFraction.cs
+!2025-09-03/Program.cs
+!2025-09-03/3AHWIII.csproj
+
+## Ignore test project artifacts but keep test files
+3AHWIII.Tests/*
+!3AHWIII.Tests/MixedFractionTests.cs
+!3AHWIII.Tests/3AHWIII.Tests.csproj
+
 ## Visual Studio temporary files
 .vs/
 .vscode/
@@ -7,38 +18,31 @@
 *.sln.docstates
 
 ## Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
-x64/
-x86/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-bld/
 [Bb]in/
 [Oo]bj/
-[Ll]og/
-[Ll]ogs/
-
-## MSTest test Results
-[Tt]est[Rr]esult*/
-[Bb]uild[Ll]og.*
+[Dd]ebug/
+[Rr]elease/
 
 ## .NET Core
 project.lock.json
 project.fragment.lock.json
 artifacts/
 
-## Visual Studio cache files
-*.[Cc]ache
-!*.[Cc]ache/
+## VS Code directories
+.vscode/
+
+## Visual Studio cache/options directory
+.vs/
+
+## User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
 
 ## Others
 *.tmp
 *.temp
 *.log
-.vs/
 *.vsidx
-.suo
-*.user
