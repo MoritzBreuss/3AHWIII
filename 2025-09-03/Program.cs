@@ -1,56 +1,22 @@
-﻿using System;
+﻿using _3AHWIII;
 
-static (long whole, long num, long denom) ParseMixedFraction(string input)
-{
-    var parts = input.Trim().Split(' ');
-    long whole = long.Parse(parts[0]);
-    var fracParts = parts[1].Split('/');
-    long num = long.Parse(fracParts[0]);
-    long denom = long.Parse(fracParts[1]);
-    return (whole, num, denom);
-}
+// Example usage: dotnet run "1 1/2" "2 1/4"
+// This will add the mixed fractions 1 1/2 and 2 1/4
 
-static long GCD(long a, long b)
+try
 {
-    while (b != 0)
+    if (args.Length != 2)
     {
-        long t = b;
-        b = a % b;
-        a = t;
+        throw new ArgumentException("Please provide two mixed fractions as arguments in the format: \"whole numerator/denominator\" \"whole numerator/denominator\"");
     }
-    return a;
+
+    var fraction1 = MixedFraction.Parse(args[0]);
+    var fraction2 = MixedFraction.Parse(args[1]);
+    
+    var result = fraction1 + fraction2;
+    Console.WriteLine(result);
 }
-
-static string AddMixedFractions(string f1, string f2)
+catch (Exception ex)
 {
-    var (w1, n1, d1) = ParseMixedFraction(f1);
-    var (w2, n2, d2) = ParseMixedFraction(f2);
-
-
-    long num1 = w1 * d1 + n1;
-    long num2 = w2 * d2 + n2;
-
-    long denom = d1 * d2;
-    long num = num1 * d2 + num2 * d1;
-
-    long whole = num / denom;
-    long remainder = num % denom;
-
-    if (remainder == 0)
-        return $"{whole}";
-
-    long gcd = GCD(remainder, denom);
-    remainder /= gcd;
-    denom /= gcd;
-
-    return $"{whole} {remainder}/{denom}";
-}
-
-if (args.Length == 2)
-{
-    Console.WriteLine(AddMixedFractions(args[0], args[1]));
-}
-else
-{
-    Console.WriteLine("Error: Please provide two mixed fractions as arguments.");
+    Console.WriteLine($"Error: {ex.Message}");
 }
