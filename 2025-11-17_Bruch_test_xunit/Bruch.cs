@@ -69,6 +69,7 @@ class Bruch
         this.zaehler = z / g;
         this.nenner = n / g;
     }
+    
     public Bruch Addiere(Bruch b)
     {
         if (b == null) throw new System.ArgumentNullException(nameof(b));
