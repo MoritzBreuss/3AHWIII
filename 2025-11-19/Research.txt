@@ -1,0 +1,8 @@
+-constructor
+wie funktioert das
+    this was bedeut das wort 
+
+-get und set (kann muss aber nicht was mit dem Constructor zu tun haben)
+
+
+Code beispiele 
