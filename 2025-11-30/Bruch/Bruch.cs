@@ -45,7 +45,7 @@ namespace Bruch
                 return $"{ganz} {rest}/{n}";
             }
             
-            // Case: Simple fraction
+            
             return $"{z}/{n}";
         }
     }

@@ -1,13 +1,10 @@
 ﻿using Xunit;
 using Bruch;
 using System;
-
-namespace BruchTest
-{
     public class UnitTest1
     {
         [Theory]
-        [InlineData(1, 2, "1/2")]
+        [InlineData(args:new[]{"1", "3"}, expectedOutput:"Ergebniss: 4")]
         [InlineData(3, 4, "3/4")]
         [InlineData(2, 4, "1/2")] // Should be simplified
         [InlineData(3, 6, "1/2")] // Should be simplified
@@ -48,5 +45,5 @@ namespace BruchTest
         {
             Assert.Throws<ArgumentException>(() => new Bruch.Bruch(1, 0));
         }
-    }
 }
+
