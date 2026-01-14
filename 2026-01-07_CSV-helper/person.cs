@@ -1,5 +1,7 @@
 using System;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using CsvHelper;
 using CsvHelper.Configuration;
 
@@ -8,10 +10,10 @@ namespace CSV_helper
 {
     public class Person
     {
-        public string Fullname { get; set; }
-        public string Email { get; set; }
-        public string Telefon { get; set; }
-        public string Adresse { get; set; }
+        public string? Fullname { get; set; }
+        public string? Email { get; set; }
+        public string? Telefon { get; set; }
+        public string? Adresse { get; set; }
         public string? unicode { get; set; }
     }
 
