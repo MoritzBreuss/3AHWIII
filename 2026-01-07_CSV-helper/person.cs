@@ -38,7 +38,7 @@ namespace CSV_helper
                 Console.WriteLine("--------------------------------------------------------------");
             }
 
-            Console.ReadKey(); 
+
         }
     }
 }
