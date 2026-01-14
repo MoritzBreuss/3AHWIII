@@ -1,9 +1,8 @@
 using System;
-using System.IO;
 using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
-using System.Linq;
+
 
 namespace CSV_helper
 {
@@ -34,6 +33,7 @@ namespace CSV_helper
             foreach (var person in personsArray)
             {
                 Console.WriteLine($"{person.Fullname} | {person.Email} | {person.Telefon} | {person.Adresse} | {person.unicode}");
+                Console.WriteLine("--------------------------------------------------------------");
             }
 
             Console.ReadKey(); 
