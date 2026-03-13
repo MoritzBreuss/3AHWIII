@@ -26,19 +26,25 @@ namespace CSV_helper
                 Delimiter = ";",
                 MissingFieldFound = null
             };
-
-            using var reader = new StreamReader("persons.csv");
-            using var csv = new CsvReader(reader, config);
-            
-            Person[] personsArray = csv.GetRecords<Person>().ToArray();
-
-            foreach (var person in personsArray)
+        try
+        {
+            using (var reader = new StreamReader("persons.csv"))
+            using (var csv = new CsvReader(reader, config))
             {
-                Console.WriteLine($"{person.Fullname} | {person.Email} | {person.Telefon} | {person.Adresse} | {person.unicode}");
-                Console.WriteLine("--------------------------------------------------------------");
+                Person[] personsArray = csv.GetRecords<Person>().ToArray();
+
+                foreach (var person in personsArray)
+                {
+                    Console.WriteLine($"{person.Fullname} | {person.Email} | {person.Telefon} | {person.Adresse} | {person.unicode}");
+                    Console.WriteLine("--------------------------------------------------------------");
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"An error occurred: {ex.Message}");  
 
-
+        }
         }
     }
 }

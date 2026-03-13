@@ -1,10 +1,30 @@
+# Build artifacts
 **/bin/
 **/obj/
 
+# IDE settings
+**/.idea/
+.vs/
+
+# JavaScript / TypeScript / Deno artifacts
+**/node_modules/
+**/coverage/
+**/.deno/
+
+# Local databases
+**/dev.db
+**/dev.db-journal
+
+# Environment files
+**/.env
+**/.env.*
+
+# Prisma generated engines or clients
+**/prisma/client/
+**/query_engine-*.dll.node
+
+# Project-specific ignores kept from previous setup
 2025-09-03/MixedFractionTests.cs
 2025-09-03/Program2.cs
-
-**/test/
-**/dev.db
 2025-09-24/
-**/.idea/
+**/test/
