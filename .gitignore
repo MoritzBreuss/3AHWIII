@@ -29,7 +29,3 @@
 2025-09-03/Program2.cs
 2025-09-24/
 **/test/
-
-# Keep the holiday Test project tracked while still ignoring its local secrets via its own .gitignore
-!Ferienprojekte/Test/
-!Ferienprojekte/Test/**
