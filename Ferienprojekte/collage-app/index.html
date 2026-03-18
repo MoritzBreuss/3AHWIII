@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="description" content="Create a photo collage on any device. Choose your grid, upload photos, drag to arrange, and save."/>
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)"/>
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <title>Collage Maker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Shared ── */
+    :root {
+      --radius:       18px;
+      --transition:   .3s ease;
+    }
+
+    /* ── Light mode tokens ── */
+    [data-theme="light"] {
+      --bg:           #f2f2f7;
+      --bg2:          #e5e5ea;
+      --surface:      #ffffff;
+      --surface2:     #f5f5f7;
+      --surface-hover:#e5e5ea;
+      --ink:          #000000;
+      --ink2:         #1c1c1e;
+      --muted:        #6c6c70;
+      --muted2:       #aeaeb2;
+      --accent:       #3a6f96;
+      --accent-hover: #2e5f82;
+      --accent-light: #4a7faa;
+      --accent-bg:    rgba(58,111,150,.10);
+      --green:        #3a6f96;
+      --green-light:  #4a7faa;
+      --border:       rgba(0,0,0,.12);
+      --slot-border:  rgba(0,0,0,.18);
+      --thumb-border: #ffffff;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.05);
+      --shadow-md:    0 4px 16px rgba(0,0,0,.08);
+      --shadow-lg:    0 8px 28px rgba(0,0,0,.11);
+      --toggle-bg:    rgba(118,118,128,.14);
+      --toggle-hover: rgba(118,118,128,.24);
+      --nav-bg:       rgba(242,242,247,.90);
+      --nav-border:   rgba(0,0,0,.09);
+      color-scheme: light;
+    }
+
+    /* ── Dark mode tokens ── */
+    [data-theme="dark"] {
+      --bg:           #000000;
+      --bg2:          #1c1c1e;
+      --surface:      #1c1c1e;
+      --surface2:     #2c2c2e;
+      --surface-hover:#3a3a3c;
+      --ink:          #ffffff;
+      --ink2:         #ebebf5;
+      --muted:        #8e8e93;
+      --muted2:       #636366;
+      --accent:       #5a8fb5;
+      --accent-hover: #4e7ea0;
+      --accent-light: #6a9fc5;
+      --accent-bg:    rgba(90,143,181,.14);
+      --green:        #5a8fb5;
+      --green-light:  #6a9fc5;
+      --border:       rgba(255,255,255,.12);
+      --slot-border:  rgba(255,255,255,.18);
+      --thumb-border: #1c1c1e;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.4);
+      --shadow-md:    0 4px 16px rgba(0,0,0,.55);
+      --shadow-lg:    0 8px 28px rgba(0,0,0,.65);
+      --toggle-bg:    rgba(118,118,128,.26);
+      --toggle-hover: rgba(118,118,128,.38);
+      --nav-bg:       rgba(28,28,30,.90);
+      --nav-border:   rgba(255,255,255,.08);
+      color-scheme: dark;
+    }
+
+    html, body { height: 100%; }
+
+    .top-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      height: 52px;
+      background: var(--nav-bg);
+      border-bottom: 1px solid var(--nav-border);
+      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(20px);
+      transition: background var(--transition), border-color var(--transition);
+    }
+
+    .nav-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -.01em;
+      color: var(--ink2);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      text-decoration: none;
+      color: var(--accent);
+      font-size: .9rem;
+      font-weight: 600;
+      letter-spacing: -.01em;
+    }
+
+    .back-link svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .theme-toggle {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--toggle-bg);
+      color: var(--ink2);
+      transition: background var(--transition), transform var(--transition);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .theme-toggle:hover { background: var(--toggle-hover); }
+    .theme-toggle:active { transform: scale(.95); }
+    .theme-toggle svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .theme-toggle .sun { display: none; }
+    [data-theme="dark"] .theme-toggle .sun { display: block; }
+    [data-theme="dark"] .theme-toggle .moon { display: none; }
+    body {
+      font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 68px 14px 80px;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+      transition: background var(--transition), color var(--transition);
+    }
+    body.is-dragging { overflow: hidden; touch-action: none; }
+
+    header {
+      text-align: center;
+      margin-bottom: 18px;
+      position: sticky;
+      top: 52px;
+      z-index: 120;
+      background: var(--bg);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 8px 8px 4px;
+    }
+    header h1 {
+      display: none;
+      font-size: clamp(1.7rem, 6vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -.02em;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--ink2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header h1 em {
+      font-style: italic;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { margin-top: 4px; color: var(--muted); font-size: .82rem; letter-spacing: -.01em; }
+
+    .page { width: 100%; max-width: 600px; display: flex; flex-direction: column; gap: 14px; }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow .3s ease, background .3s, border-color .3s;
+    }
+    .card:hover { box-shadow: var(--shadow-md); }
+
+    .label {
+      font-size: .68rem; font-weight: 600; letter-spacing: .13em;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, var(--muted) 0%, var(--muted2) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px; display: block;
+    }
+
+    /* ── Grid Sliders ── */
+    .sliders { display: flex; flex-direction: column; gap: 10px; }
+    .sl-row { display: flex; align-items: center; gap: 12px; }
+    .sl-row label { font-size: .76rem; color: var(--muted); min-width: 58px; }
+    .sl-row input[type=range] {
+      flex: 1; -webkit-appearance: none; appearance: none;
+      height: 6px; border-radius: 8px; background: var(--border); outline: none; cursor: pointer;
+    }
+    .sl-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--ink2) 100%);
+      cursor: pointer;
+      border: 3px solid var(--thumb-border);
+      box-shadow: var(--shadow-sm);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .sl-row input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.1); box-shadow: var(--shadow-md); }
+    .sl-row input[type=range]::-moz-range-thumb {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--ink2) 100%);
+      cursor: pointer; border: 3px solid var(--thumb-border); box-shadow: var(--shadow-sm);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .sl-ticks { display: flex; justify-content: space-between; padding: 2px 14px 0; }
+    .sl-ticks span { font-size: .6rem; color: var(--border); }
+    .sl-val {
+      min-width: 28px; text-align: center;
+      font-size: .82rem; font-weight: 600; color: var(--ink);
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 7px; padding: 3px 6px;
+    }
+    .grid-info { font-size: .78rem; color: var(--muted); margin-top: 8px; text-align: center; }
+    .grid-info strong { color: var(--ink); }
+
+    /* ── Upload Tray ── */
+    .tray-scroll {
+      display: flex; gap: 10px;
+      overflow-x: auto; overflow-y: hidden;
+      padding-bottom: 6px;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tray-scroll::-webkit-scrollbar { height: 3px; }
+    .tray-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    .tray-add {
+      flex-shrink: 0; width: 80px; height: 80px;
+      border-radius: 12px; border: 1.5px dashed var(--slot-border);
+      background: var(--bg2);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      cursor: pointer; scroll-snap-align: start;
+      transition: all .25s ease; position: relative; color: var(--muted);
+      box-shadow: var(--shadow-sm);
+    }
+    .tray-add:hover, .tray-add:active {
+      border-color: var(--accent); color: var(--accent);
+      background: var(--accent-bg);
+      box-shadow: 0 4px 12px rgba(90,125,154,.22);
+      transform: translateY(-2px);
+    }
+    .tray-add input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .tray-add svg { width: 22px; height: 22px; }
+    .tray-add span { font-size: .62rem; font-weight: 500; }
+
+    .tray-img {
+      flex-shrink: 0; width: 80px; height: 80px;
+      border-radius: 12px; background-size: cover; background-position: center;
+      scroll-snap-align: start; position: relative;
+      cursor: grab; touch-action: none;
+      user-select: none; -webkit-user-select: none;
+      border: 2px solid transparent;
+      transition: all .2s ease;
+      animation: pop .22s ease both;
+      box-shadow: var(--shadow-sm);
+    }
+    .tray-img:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .tray-img.in-grid { opacity: .35; cursor: default; pointer-events: none; }
+    .tray-img.dragging-source { opacity: .2; }
+
+    .tray-remove {
+      position: absolute; top: -6px; right: -6px;
+      width: 20px; height: 20px;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--ink2) 100%);
+      color: var(--bg); border-radius: 50%; border: none; cursor: pointer;
+      font-size: .65rem; display: flex; align-items: center; justify-content: center;
+      z-index: 2; transition: all .2s; line-height: 1;
+      box-shadow: var(--shadow-sm);
+    }
+    .tray-remove:hover {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      transform: scale(1.15); box-shadow: 0 3px 12px rgba(90,125,154,.35);
+    }
+
+    /* ── Collage Grid ── */
+    #grid { display: grid; gap: 8px; width: 100%; }
+    .cell {
+      aspect-ratio: 1; border-radius: 10px;
+      border: 1.5px dashed var(--slot-border);
+      background: var(--bg2); position: relative; overflow: hidden;
+      transition: border-color .18s, box-shadow .18s, background .18s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cell.occupied { border-style: solid; border-color: transparent; }
+    .cell.drop-target {
+      border-color: var(--accent) !important;
+      background: var(--accent-bg) !important;
+      box-shadow: inset 0 0 0 2px var(--accent);
+    }
+    .cell-img {
+      position: absolute; inset: 0;
+      background-size: cover; background-position: center;
+      border-radius: 8px; touch-action: none;
+      user-select: none; -webkit-user-select: none; cursor: grab;
+    }
+    .cell-lbl { font-size: .6rem; font-weight: 500; color: var(--slot-border); pointer-events: none; }
+    .cell-eject {
+      position: absolute; top: 4px; right: 4px;
+      width: 22px; height: 22px;
+      background: rgba(0,0,0,.55);
+      color: #fff; border-radius: 50%; border: none; cursor: pointer;
+      font-size: .7rem; display: none; align-items: center; justify-content: center;
+      z-index: 3; transition: all .2s; box-shadow: var(--shadow-sm);
+    }
+    .cell.occupied:hover .cell-eject,
+    .cell.occupied.show-eject .cell-eject { display: flex; }
+    .cell-eject:hover {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      transform: scale(1.15); box-shadow: 0 3px 12px rgba(90,125,154,.4);
+    }
+
+    /* ── Gap control ── */
+    .gap-row { display: flex; align-items: center; gap: 12px; }
+    .gap-row label { font-size: .76rem; color: var(--muted); white-space: nowrap; }
+    .gap-row input[type=range] {
+      flex: 1; -webkit-appearance: none; appearance: none;
+      height: 6px; border-radius: 8px; background: var(--border); outline: none; cursor: pointer;
+    }
+    .gap-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--ink2) 100%);
+      cursor: pointer; border: 3px solid var(--thumb-border); box-shadow: var(--shadow-sm);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .gap-row input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.1); box-shadow: var(--shadow-md); }
+    .gap-row input[type=range]::-moz-range-thumb {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--ink) 0%, var(--ink2) 100%);
+      cursor: pointer; border: 3px solid var(--thumb-border); box-shadow: var(--shadow-sm);
+    }
+    .gap-lbl { font-size: .76rem; font-weight: 600; color: var(--ink); min-width: 30px; text-align: right; }
+
+    /* ── Buttons ── */
+    .btn-row { display: flex; gap: 10px; }
+    .btn {
+      flex: 1; padding: 15px; border: none; border-radius: 12px;
+      font-family: inherit; font-size: .9rem; font-weight: 500;
+      cursor: pointer; transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
+      min-height: 54px; position: relative; overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+    .btn::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.15) 0%, transparent 50%);
+      opacity: 0; transition: opacity .25s;
+    }
+    .btn:hover::before { opacity: 1; }
+    .btn:active { transform: translateY(1px); box-shadow: none; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--bg); box-shadow: var(--shadow-md);
+    }
+    .btn-primary:hover { background: var(--accent-hover); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+    .btn-primary:disabled {
+      background: var(--border); color: var(--muted);
+      cursor: not-allowed; transform: none; box-shadow: none;
+    }
+
+    .btn-ghost {
+      background: var(--surface2); color: var(--muted);
+      border: 1.5px solid var(--border); box-shadow: none;
+    }
+    .btn-ghost:hover {
+      color: var(--ink); background: var(--surface-hover);
+      border-color: var(--slot-border); box-shadow: var(--shadow-sm);
+      transform: translateY(-1px);
+    }
+
+    .btn-save {
+      flex: 1; padding: 15px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+      color: #fff; border: none; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 600;
+      cursor: pointer; transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
+      min-height: 54px; position: relative; overflow: hidden;
+      box-shadow: 0 4px 16px rgba(255,149,0,.3); letter-spacing: .01em;
+    }
+    .btn-save::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.2) 0%, transparent 60%);
+      opacity: 0; transition: opacity .25s;
+    }
+    .btn-save:hover { box-shadow: 0 6px 24px rgba(255,149,0,.4); transform: translateY(-2px); }
+    .btn-save:hover::after { opacity: 1; }
+    .btn-save:active { transform: translateY(0); box-shadow: 0 2px 10px rgba(255,149,0,.3); }
+    .btn-save:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; box-shadow: none; }
+
+    /* ── Save card ── */
+    #saveCard { display: none; }
+    #canvas {
+      max-width: 100%; border-radius: 10px; display: block; margin-bottom: 14px;
+      box-shadow: var(--shadow-lg); border: 1px solid var(--border);
+    }
+    .save-row { display: flex; gap: 10px; align-items: center; }
+    select {
+      padding: 13px 10px; border: 1px solid var(--border); border-radius: 11px;
+      font-family: 'DM Sans', sans-serif; font-size: .84rem;
+      background: var(--surface2); color: var(--ink); outline: none; cursor: pointer; min-height: 54px;
+    }
+
+    /* iOS save tip */
+    .ios-tip {
+      margin-top: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+      font-size: .8rem; color: var(--muted);
+      line-height: 1.65; display: none;
+      box-shadow: var(--shadow-sm);
+    }
+    .ios-tip strong { color: var(--ink); font-weight: 600; }
+
+    /* Save-to-photos button (iOS) */
+    .btn-photos {
+      flex: 1; padding: 15px;
+      background: linear-gradient(135deg, var(--green) 0%, var(--green-light) 100%);
+      color: #fff; border: none; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 600;
+      cursor: pointer; transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
+      min-height: 54px; position: relative; overflow: hidden;
+      box-shadow: 0 4px 16px rgba(74,124,111,.3); letter-spacing: .01em;
+    }
+    .btn-photos::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.2) 0%, transparent 60%);
+      opacity: 0; transition: opacity .25s;
+    }
+    .btn-photos:hover { box-shadow: 0 6px 24px rgba(74,124,111,.4); transform: translateY(-2px); }
+    .btn-photos:hover::after { opacity: 1; }
+    .btn-photos:active { transform: translateY(0); box-shadow: 0 2px 10px rgba(74,124,111,.3); }
+
+    /* ── Save overlay ── */
+    #saveOverlay {
+      display: none; position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,.88);
+      flex-direction: column; align-items: center; justify-content: center;
+      padding: 20px; gap: 16px;
+      -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    }
+    #saveOverlay.open { display: flex; }
+    #saveOverlay .overlay-tip {
+      color: #fff; font-size: .92rem; text-align: center;
+      line-height: 1.6; max-width: 320px;
+    }
+    #saveOverlay .overlay-tip strong { color: #ffd6a0; }
+    #saveOverlay img {
+      max-width: 92vw; max-height: 65vh;
+      border-radius: 10px; box-shadow: 0 6px 30px rgba(0,0,0,.5);
+      -webkit-user-select: none; user-select: none;
+      -webkit-touch-callout: default !important;
+    }
+    #saveOverlay .overlay-close {
+      padding: 14px 36px; border: 2px solid rgba(255,255,255,.35);
+      border-radius: 12px; background: rgba(255,255,255,.08); color: #fff;
+      font-family: 'DM Sans', sans-serif; font-size: .9rem; font-weight: 500;
+      cursor: pointer; transition: all .25s;
+      -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    }
+    #saveOverlay .overlay-close:hover {
+      background: rgba(255,255,255,.18); border-color: rgba(255,255,255,.6);
+      transform: translateY(-2px); box-shadow: var(--shadow-md);
+    }
+    #saveOverlay .overlay-arrow {
+      font-size: 2rem; color: rgba(255,255,255,.5);
+      animation: bounceDown 1.2s ease infinite;
+    }
+    @keyframes bounceDown {
+      0%, 100% { transform: translateY(0); }
+      50%       { transform: translateY(6px); }
+    }
+
+    /* ── Drag ghost ── */
+    #dragGhost {
+      position: fixed; width: 90px; height: 90px; border-radius: 12px;
+      background-size: cover; background-position: center;
+      pointer-events: none; z-index: 9999; opacity: .88;
+      box-shadow: var(--shadow-lg);
+      transform: translate(-50%, -50%) scale(1.08); display: none;
+    }
+
+    @keyframes pop {
+      0%   { transform: scale(.7); opacity: 0; }
+      70%  { transform: scale(1.06); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="top-nav" aria-label="Navigation">
+  <a class="back-link" href="https://my-project-hub-open2.vercel.app">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    Zurück
+  </a>
+  <span class="nav-title">Grid Collage</span>
+  <button class="theme-toggle" id="snapThemeToggle" aria-label="Theme wechseln">
+    <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+    <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="5"/>
+      <line x1="12" y1="1" x2="12" y2="3"/>
+      <line x1="12" y1="21" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="3" y2="12"/>
+      <line x1="21" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+    </svg>
+  </button>
+</nav>
+
+<header>
+  <h1>Grid <em>Collage</em></h1>
+  <p>Upload photos · drag to arrange · save</p>
+</header>
+
+<div class="page">
+
+  <!-- 1. Grid Size -->
+  <div class="card">
+    <span class="label">Grid Size</span>
+    <div class="sliders">
+      <div>
+        <div class="sl-row">
+          <label>Rows</label>
+          <input type="range" id="rowSlider" min="1" max="5" value="2" step="1"/>
+          <div class="sl-val" id="rowVal">2</div>
+        </div>
+        <div class="sl-ticks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+      </div>
+      <div>
+        <div class="sl-row">
+          <label>Columns</label>
+          <input type="range" id="colSlider" min="1" max="5" value="2" step="1"/>
+          <div class="sl-val" id="colVal">2</div>
+        </div>
+        <div class="sl-ticks"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
+      </div>
+    </div>
+    <p class="grid-info" id="gridInfo"><strong>2 × 2</strong> — 4 slots</p>
+  </div>
+
+  <!-- 2. Upload Tray -->
+  <div class="card">
+    <span class="label">Your Photos</span>
+    <div class="tray-scroll" id="tray">
+      <div class="tray-add" id="trayAdd" title="Add photos">
+        <input type="file" accept="image/*" multiple id="fileInput"/>
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+        </svg>
+        <span>Add</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Collage Grid -->
+  <div class="card">
+    <span class="label">Collage — drag photos to rearrange</span>
+    <div id="grid"></div>
+    <div class="gap-row" style="margin-top:14px;">
+      <label>Gap</label>
+      <input type="range" id="gapSlider" min="0" max="60" value="4" step="2"/>
+      <span class="gap-lbl" id="gapLbl">4px</span>
+    </div>
+    <div class="btn-row" style="margin-top:12px;">
+      <button class="btn btn-ghost" id="clearBtn">Clear Grid</button>
+      <button class="btn btn-primary" id="buildBtn" disabled>Generate ↓</button>
+    </div>
+  </div>
+
+  <!-- 4. Save -->
+  <div class="card" id="saveCard">
+    <span class="label">Save</span>
+    <canvas id="canvas"></canvas>
+    <div class="save-row">
+      <select id="fmtSelect">
+        <option value="image/jpeg">JPEG</option>
+        <option value="image/png">PNG</option>
+        <option value="image/webp">WebP</option>
+      </select>
+      <button class="btn-save" id="saveBtn">↓ Download Image</button>
+      <button class="btn-photos" id="savePhotosBtn" style="display:none;">Save to Photos</button>
+    </div>
+    <div class="ios-tip" id="iosTip">
+      <strong>iPhone:</strong> Tap <strong>"Save to Photos"</strong>, then long-press the image and tap <strong>"Add to Photos"</strong>.
+    </div>
+  </div>
+
+</div>
+
+<div id="dragGhost"></div>
+
+<!-- Save-to-photos overlay -->
+<div id="saveOverlay">
+  <div class="overlay-tip">
+    <strong>Long-press</strong> the image below, then tap<br><strong>"Add to Photos"</strong>
+  </div>
+  <div class="overlay-arrow">↓</div>
+  <img id="overlayImg" src="" alt="Your collage"/>
+  <button class="overlay-close" id="overlayClose">✕ Close</button>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+let rows = 2, cols = 2, gap = 4;
+let pool = [];       // { id, url, imgEl, trayEl }
+let nextId = 0;
+let gridData = [];   // array of pool-id | null
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const snapThemeToggle = document.getElementById('snapThemeToggle');
+const systemDarkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+
+function applySnapTheme(mode, persist) {
+  document.documentElement.setAttribute('data-theme', mode);
+  if (persist) localStorage.setItem('theme', mode);
+}
+
+const savedSnapTheme = localStorage.getItem('theme');
+if (savedSnapTheme === 'light' || savedSnapTheme === 'dark') {
+  applySnapTheme(savedSnapTheme, false);
+} else {
+  applySnapTheme(systemDarkMQ.matches ? 'dark' : 'light', false);
+}
+
+snapThemeToggle.addEventListener('click', () => {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applySnapTheme(next, true);
+});
+
+systemDarkMQ.addEventListener('change', (event) => {
+  const saved = localStorage.getItem('theme');
+  if (saved !== 'light' && saved !== 'dark') {
+    applySnapTheme(event.matches ? 'dark' : 'light', false);
+  }
+});
+
+// Show iOS-specific UI (safely)
+if (isIOS) {
+  const tip = document.getElementById('iosTip');
+  if (tip) tip.style.display = 'block';
+  const photosBtn = document.getElementById('savePhotosBtn');
+  if (photosBtn) photosBtn.style.display = '';
+}
+
+// ── Upload ─────────────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', e => {
+  [...e.target.files].forEach(addFile);
+  e.target.value = '';
+});
+
+// Resize large images for mobile performance (max 2000px)
+function resizeImage(img, maxDim) {
+  maxDim = maxDim || 2000;
+  if (img.naturalWidth <= maxDim && img.naturalHeight <= maxDim) return img;
+  const scale = maxDim / Math.max(img.naturalWidth, img.naturalHeight);
+  const c = document.createElement('canvas');
+  c.width  = Math.round(img.naturalWidth * scale);
+  c.height = Math.round(img.naturalHeight * scale);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  const resized = new Image();
+  resized.src = c.toDataURL('image/jpeg', 0.92);
+  return resized;
+}
+
+function addFile(file) {
+  if (!file.type.startsWith('image/')) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const final = resizeImage(img, 2000);
+    if (final !== img) {
+      // Wait for resized image to load its data URL
+      const waitLoad = () => {
+        URL.revokeObjectURL(url);
+        addToPool({ id: nextId++, url: final.src, imgEl: final });
+      };
+      if (final.complete) waitLoad();
+      else final.onload = waitLoad;
+    } else {
+      // Keep the object URL for small images
+      addToPool({ id: nextId++, url: url, imgEl: img });
+    }
+  };
+  img.onerror = () => {
+    console.warn('Failed to load image:', file.name);
+    URL.revokeObjectURL(url);
+  };
+  img.src = url;
+}
+
+function addToPool(item) {
+  pool.push(item);
+  renderTrayItem(item);
+  // Auto-fill next empty slot
+  const emptyIdx = gridData.findIndex(v => v == null);
+  if (emptyIdx !== -1) {
+    gridData[emptyIdx] = item.id;
+    refreshGrid();
+  }
+  updateBuildBtn();
+}
+
+function renderTrayItem(item) {
+  const div = document.createElement('div');
+  div.className = 'tray-img';
+  div.style.backgroundImage = `url(${item.url})`;
+  div.dataset.id = item.id;
+
+  const rm = document.createElement('button');
+  rm.className = 'tray-remove';
+  rm.innerHTML = '✕';
+  rm.setAttribute('aria-label', 'Remove photo');
+  rm.addEventListener('click', e => { e.stopPropagation(); removeFromPool(item.id); });
+  div.appendChild(rm);
+
+  item.trayEl = div;
+  const tray = document.getElementById('tray');
+  tray.insertBefore(div, document.getElementById('trayAdd'));
+  makeDraggable(div, item.id, 'tray');
+}
+
+function removeFromPool(id) {
+  gridData = gridData.map(v => v === id ? null : v);
+  refreshGrid();
+  const idx = pool.findIndex(p => p.id === id);
+  if (idx !== -1) { pool[idx].trayEl?.remove(); pool.splice(idx, 1); }
+  updateBuildBtn();
+}
+
+function isInGrid(id) { return gridData.includes(id); }
+
+// ── Grid ───────────────────────────────────────────────
+function initGrid(keepData = false) {
+  const total = rows * cols;
+  const old   = [...gridData];
+  gridData = Array(total).fill(null);
+  if (keepData) for (let i = 0; i < Math.min(total, old.length); i++) gridData[i] = old[i];
+  buildCells();
+  refreshGrid();
+  updateBuildBtn();
+  document.getElementById('saveCard').style.display = 'none';
+}
+
+function buildCells() {
+  const g = document.getElementById('grid');
+  g.innerHTML = '';
+  g.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+  for (let i = 0; i < rows * cols; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.dataset.cellIdx = i;
+
+    const r = Math.floor(i / cols) + 1, c = (i % cols) + 1;
+    const lbl = document.createElement('div');
+    lbl.className = 'cell-lbl';
+    lbl.textContent = rows * cols === 1 ? '1×1' : `${r},${c}`;
+    cell.appendChild(lbl);
+
+    const img = document.createElement('div');
+    img.className = 'cell-img';
+    img.dataset.cellImg = i;
+    cell.appendChild(img);
+
+    const ej = document.createElement('button');
+    ej.className = 'cell-eject';
+    ej.innerHTML = '✕';
+    ej.setAttribute('aria-label', 'Remove from grid');
+    ej.addEventListener('click', e => { e.stopPropagation(); ejectCell(i); });
+    cell.appendChild(ej);
+
+    let pressTimer;
+    cell.addEventListener('pointerdown', () => { pressTimer = setTimeout(() => cell.classList.add('show-eject'), 500); });
+    cell.addEventListener('pointerup',   () => clearTimeout(pressTimer));
+    cell.addEventListener('pointerleave',() => clearTimeout(pressTimer));
+
+    g.appendChild(cell);
+  }
+}
+
+function refreshGrid() {
+  for (let i = 0; i < rows * cols; i++) {
+    const cell  = getCell(i);
+    const imgEl = cell.querySelector('.cell-img');
+    const id    = gridData[i];
+    const item  = id != null ? pool.find(p => p.id === id) : null;
+
+    if (item) {
+      imgEl.style.backgroundImage = `url(${item.url})`;
+      cell.classList.add('occupied');
+      imgEl.style.pointerEvents = 'auto';
+      makeDraggable(imgEl, id, 'grid', i);
+    } else {
+      imgEl.style.backgroundImage = '';
+      cell.classList.remove('occupied', 'show-eject');
+      imgEl.style.pointerEvents = 'none';
+    }
+  }
+  pool.forEach(item => item.trayEl?.classList.toggle('in-grid', isInGrid(item.id)));
+}
+
+function ejectCell(idx) {
+  if (gridData[idx] == null) return;
+  gridData[idx] = null;
+  refreshGrid();
+  updateBuildBtn();
+  getCell(idx).classList.remove('show-eject');
+}
+
+function getCell(i) { return document.getElementById('grid').children[i]; }
+
+// ── Drag & Drop (Pointer Events) ───────────────────────
+const ghost = document.getElementById('dragGhost');
+let drag = null;
+
+function makeDraggable(el, id, fromType, fromIdx) {
+  el.style.touchAction = 'none';
+  el.style.pointerEvents = 'auto';
+  const fresh = el.cloneNode(true);
+  el.parentNode.replaceChild(fresh, el);
+
+  fresh.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    const item = pool.find(p => p.id === id);
+    if (!item) return;
+    if (fromType === 'tray' && isInGrid(id)) return;
+
+    drag = { id, fromType, fromIdx: fromIdx ?? -1 };
+    ghost.style.backgroundImage = `url(${item.url})`;
+    ghost.style.display = 'block';
+    moveGhost(e);
+    document.body.classList.add('is-dragging');
+
+    if (fromType === 'tray') item.trayEl?.classList.add('dragging-source');
+    if (fromType === 'grid') getCell(fromIdx).querySelector('.cell-img').style.opacity = '0';
+  }, { passive: false });
+
+  return fresh;
+}
+
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  e.preventDefault();
+  moveGhost(e);
+  highlightTarget(e);
+}, { passive: false });
+
+document.addEventListener('pointerup', e => {
+  if (!drag) return;
+  e.preventDefault();
+  const target = getCellUnder(e);
+  clearHighlights();
+
+  if (target !== null) {
+    const destId = gridData[target], srcId = drag.id;
+    if (drag.fromType === 'tray') {
+      gridData[target] = srcId;
+    } else if (drag.fromType === 'grid') {
+      gridData[drag.fromIdx] = destId;
+      gridData[target]       = srcId;
+    }
+    refreshGrid();
+    updateBuildBtn();
+  } else {
+    if (drag.fromType === 'grid') {
+      gridData[drag.fromIdx] = drag.id;
+      refreshGrid();
+    }
+  }
+
+  if (drag.fromType === 'tray') pool.find(p => p.id === drag.id)?.trayEl?.classList.remove('dragging-source');
+  else if (drag.fromType === 'grid') { const ci = getCell(drag.fromIdx)?.querySelector('.cell-img'); if (ci) ci.style.opacity = ''; }
+
+  ghost.style.display = 'none';
+  document.body.classList.remove('is-dragging');
+  drag = null;
+}, { passive: false });
+
+function moveGhost(e) {
+  ghost.style.left = (e.clientX ?? 0) + 'px';
+  ghost.style.top  = (e.clientY ?? 0) + 'px';
+}
+
+function getCellUnder(e) {
+  ghost.style.display = 'none';
+  const el = document.elementFromPoint(e.clientX ?? 0, e.clientY ?? 0);
+  ghost.style.display = 'block';
+  if (!el) return null;
+  const cell = el.closest('[data-cell-idx]');
+  return cell ? parseInt(cell.dataset.cellIdx) : null;
+}
+
+function highlightTarget(e) {
+  clearHighlights();
+  const idx = getCellUnder(e);
+  if (idx !== null) getCell(idx)?.classList.add('drop-target');
+}
+
+function clearHighlights() {
+  document.querySelectorAll('.cell.drop-target').forEach(c => c.classList.remove('drop-target'));
+}
+
+// ── Sliders ────────────────────────────────────────────
+document.getElementById('rowSlider').addEventListener('input', function() {
+  rows = parseInt(this.value);
+  document.getElementById('rowVal').textContent = rows;
+  updateGridInfo(); initGrid(true);
+});
+document.getElementById('colSlider').addEventListener('input', function() {
+  cols = parseInt(this.value);
+  document.getElementById('colVal').textContent = cols;
+  updateGridInfo(); initGrid(true);
+});
+document.getElementById('gapSlider').addEventListener('input', function() {
+  gap = parseInt(this.value);
+  document.getElementById('gapLbl').textContent = gap + 'px';
+});
+function updateGridInfo() {
+  const t = rows * cols;
+  document.getElementById('gridInfo').innerHTML = `<strong>${rows} × ${cols}</strong> — ${t} slot${t !== 1 ? 's' : ''}`;
+}
+
+// ── Build ──────────────────────────────────────────────
+function updateBuildBtn() {
+  document.getElementById('buildBtn').disabled = !gridData.length || !gridData.every(v => v != null);
+}
+
+document.getElementById('buildBtn').addEventListener('click', () => {
+  const imgs = gridData.map(id => pool.find(p => p.id === id).imgEl);
+  const maxW = Math.max(...imgs.map(i => i.naturalWidth));
+  const maxH = Math.max(...imgs.map(i => i.naturalHeight));
+
+  const canvas = document.getElementById('canvas');
+  const ctx    = canvas.getContext('2d');
+  canvas.width  = maxW * cols + gap * (cols - 1);
+  canvas.height = maxH * rows + gap * (rows - 1);
+
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  imgs.forEach((img, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const x = col * (maxW + gap), y = row * (maxH + gap);
+    const scale = Math.max(maxW / img.naturalWidth, maxH / img.naturalHeight);
+    const sw = maxW / scale, sh = maxH / scale;
+    const sx = (img.naturalWidth - sw) / 2, sy = (img.naturalHeight - sh) / 2;
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, maxW, maxH);
+  });
+
+  document.getElementById('saveCard').style.display = 'block';
+  document.getElementById('saveCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// ── Save ───────────────────────────────────────────────
+// Helper: get blob from canvas
+function getCanvasBlob() {
+  return new Promise(resolve => {
+    const canvas  = document.getElementById('canvas');
+    const fmt     = document.getElementById('fmtSelect').value;
+    const quality = fmt === 'image/jpeg' ? 0.93 : 1;
+    canvas.toBlob(blob => resolve({ blob, fmt }), fmt, quality);
+  });
+}
+
+// ── Save to Photos (iOS overlay) ───────────────────────
+document.getElementById('savePhotosBtn').addEventListener('click', async () => {
+  const { blob, fmt } = await getCanvasBlob();
+  const dataURL = await new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.readAsDataURL(blob);
+  });
+  const overlay  = document.getElementById('saveOverlay');
+  const img      = document.getElementById('overlayImg');
+  img.src = dataURL;
+  overlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+});
+
+document.getElementById('overlayClose').addEventListener('click', () => {
+  const overlay = document.getElementById('saveOverlay');
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+});
+
+// Close overlay on tap outside image
+document.getElementById('saveOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) {
+    e.currentTarget.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+});
+
+// ── Download / Save (Desktop / Android) ────────────────
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const { blob, fmt } = await getCanvasBlob();
+  const ext      = fmt.split('/')[1];
+  const filename = `collage-${rows}x${cols}.${ext}`;
+
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+});
+
+// ── Clear ──────────────────────────────────────────────
+document.getElementById('clearBtn').addEventListener('click', () => {
+  gridData = Array(rows * cols).fill(null);
+  refreshGrid(); updateBuildBtn();
+  document.getElementById('saveCard').style.display = 'none';
+});
+
+// ── Prevent iOS rubber-band scroll during drag ────────
+document.addEventListener('touchmove', e => {
+  if (drag) e.preventDefault();
+}, { passive: false });
+
+// ── Boot ───────────────────────────────────────────────
+updateGridInfo();
+initGrid();
+</script>
+</body>
+</html>

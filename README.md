@@ -25,6 +25,7 @@ Die Projekte sind nach Datum und Thema organisiert.
 | `2026-01-07_CSV-helper/` | CSV lesen und ausgeben | .NET, CsvHelper |
 | `2026-03-11_Inventarsystem/` | Hausuebung Interfaces und Inventar | .NET |
 | `3AHWIII.Tests/` | Zentrales Testprojekt | .NET, xUnit |
+| `Ferienprojekte/` | Frontend- und Fullstack-Experimente (HTML, Next.js, Node) | HTML, TypeScript, Next.js, Node.js |
 | `test/` | Weitere Uebungs-/Experimentierprojekte | .NET |
 
 ## Schnellstart

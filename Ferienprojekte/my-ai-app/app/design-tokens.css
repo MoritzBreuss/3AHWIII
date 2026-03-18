@@ -1,0 +1,213 @@
+/* ============================================================
+   DESIGN SYSTEM — Expense Tracker
+   Premium FinTech / SaaS — Mobile-First
+   ============================================================
+
+   COLOUR TOKENS
+   Light:  clean whites, slate grays, indigo accent
+   Dark:   true dark (not pure black) — #0f1117 base
+   Accent: Indigo-600 / Electric Blue gradient
+
+   SPACING SCALE (4-pt grid)
+   --space-1  = 4px
+   --space-2  = 8px
+   --space-3  = 12px
+   --space-4  = 16px
+   --space-5  = 20px
+   --space-6  = 24px
+   --space-8  = 32px
+   --space-10 = 40px
+   --space-12 = 48px
+
+   RADIUS SCALE
+   --r-sm  = 10px
+   --r-md  = 14px
+   --r-lg  = 18px
+   --r-xl  = 24px
+   --r-pill= 999px
+
+   SHADOW SCALE
+   --shadow-xs  = micro lift
+   --shadow-sm  = card
+   --shadow-md  = panel
+   --shadow-lg  = hero
+   --shadow-glow= accent glow (CTA button)
+   ============================================================ */
+
+:root {
+  /* ---------- SPACING ---------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ---------- RADIUS ---------- */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+  --r-pill: 999px;
+
+  /* ---------- FONT SIZE (fluid) ---------- */
+  --text-xs:   0.75rem;
+  --text-sm:   0.85rem;
+  --text-base: 0.95rem;
+  --text-md:   1.05rem;
+  --text-lg:   1.2rem;
+  --text-xl:   clamp(1.5rem, 5vw, 2.1rem);
+  --text-hero: clamp(1.8rem, 6vw, 2.5rem);
+
+  /* ---------- FONT WEIGHT ---------- */
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+
+  /* ---------- TRANSITIONS ---------- */
+  --transition-fast:   0.15s ease;
+  --transition-base:   0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow:   0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ========================================================
+     LIGHT MODE — DEFAULT
+     ======================================================== */
+
+  /* Backgrounds */
+  --bg-app:      #f0f4ff;
+  --bg-surface:  #ffffff;
+  --bg-elevated: #ffffff;
+  --bg-subtle:   #f8faff;
+  --bg-overlay:  rgba(255,255,255,0.82);
+
+  /* Borders */
+  --border:       rgba(99, 115, 155, 0.18);
+  --border-strong: rgba(99, 115, 155, 0.30);
+  --border-focus: #4f46e5;
+
+  /* Text */
+  --text-primary:   #0d1117;
+  --text-secondary: #4a5568;
+  --text-tertiary:  #718096;
+  --text-disabled:  #a0aec0;
+  --text-inverse:   #ffffff;
+  --text-accent:    #4f46e5;
+
+  /* Accent / Brand */
+  --accent:         #4f46e5;
+  --accent-hover:   #4338ca;
+  --accent-subtle:  #eef2ff;
+  --accent-border:  #c7d2fe;
+
+  /* Semantic */
+  --success:        #059669;
+  --success-subtle: #d1fae5;
+  --success-text:   #065f46;
+  --danger:         #dc2626;
+  --danger-subtle:  #fef2f2;
+  --danger-border:  #fecaca;
+  --danger-text:    #991b1b;
+  --warning:        #d97706;
+  --warning-subtle: #fffbeb;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 3px rgba(15,23,70, 0.07);
+  --shadow-sm: 0 4px 14px rgba(15,23,70, 0.08);
+  --shadow-md: 0 8px 24px rgba(15,23,70, 0.10);
+  --shadow-lg: 0 16px 40px rgba(15,23,70, 0.12);
+  --shadow-glow: 0 8px 28px rgba(79, 70, 229, 0.38);
+  --shadow-glow-green: 0 6px 20px rgba(5, 150, 105, 0.32);
+
+   /* Hero (light mode) */
+   --hero-grad-from: #eef2ff;
+   --hero-grad-to:   #e0e7ff;
+   --hero-kicker:    #4f46e5;
+   --hero-subtitle:  #475569;
+   --hero-title:     #111827;
+   --hero-username:  #4338ca;
+   --hero-text:      #1f2937;
+   --hero-kpi-bg:    rgba(79, 70, 229, 0.08);
+   --hero-kpi-border: rgba(79, 70, 229, 0.18);
+   --hero-kpi-icon:  rgba(67, 56, 202, 0.8);
+   --hero-kpi-label: rgba(30, 41, 59, 0.65);
+   --hero-kpi-value: #0f172a;
+   --hero-kpi-accent-value: #4338ca;
+   --hero-action-bg: rgba(255, 255, 255, 0.72);
+   --hero-action-border: rgba(79, 70, 229, 0.2);
+   --hero-action-color: #334155;
+   --hero-toggle-track-bg: rgba(79, 70, 229, 0.16);
+   --hero-toggle-track-border: rgba(79, 70, 229, 0.28);
+}
+
+/* ============================================================
+   DARK MODE
+   ============================================================ */
+[data-theme="dark"] {
+  /* Backgrounds — NOT pure black */
+  --bg-app:      #0f1117;
+  --bg-surface:  #181c27;
+  --bg-elevated: #1e2333;
+  --bg-subtle:   #242a3a;
+  --bg-overlay:  rgba(24, 28, 39, 0.88);
+
+  /* Borders */
+  --border:        rgba(255,255,255, 0.08);
+  --border-strong: rgba(255,255,255, 0.14);
+  --border-focus:  #818cf8;
+
+  /* Text */
+  --text-primary:   #edf0f7;
+  --text-secondary: #9ba7be;
+  --text-tertiary:  #6b778e;
+  --text-disabled:  #4a5568;
+  --text-inverse:   #0d1117;
+  --text-accent:    #818cf8;
+
+  /* Accent */
+  --accent:        #6366f1;
+  --accent-hover:  #818cf8;
+  --accent-subtle: rgba(99, 102, 241, 0.15);
+  --accent-border: rgba(99, 102, 241, 0.30);
+
+  /* Semantic */
+  --success:        #10b981;
+  --success-subtle: rgba(16, 185, 129, 0.12);
+  --success-text:   #6ee7b7;
+  --danger:         #f87171;
+  --danger-subtle:  rgba(248, 113, 113, 0.10);
+  --danger-border:  rgba(248, 113, 113, 0.24);
+  --danger-text:    #fca5a5;
+
+  /* Shadows (glow emphasis) */
+  --shadow-xs: 0 1px 4px rgba(0,0,0, 0.3);
+  --shadow-sm: 0 4px 16px rgba(0,0,0, 0.35);
+  --shadow-md: 0 8px 28px rgba(0,0,0, 0.40);
+  --shadow-lg: 0 18px 44px rgba(0,0,0, 0.50);
+  --shadow-glow: 0 8px 28px rgba(99, 102, 241, 0.45);
+  --shadow-glow-green: 0 6px 20px rgba(16, 185, 129, 0.35);
+
+   /* Hero (dark mode) */
+  --hero-grad-from: #0d0f1c;
+  --hero-grad-to:   #151928;
+  --hero-kicker:    #818cf8;
+  --hero-subtitle:  #6b778e;
+   --hero-title:     #ffffff;
+   --hero-username:  #c7d2fe;
+   --hero-text:      #ffffff;
+   --hero-kpi-bg:    rgba(255,255,255,0.08);
+   --hero-kpi-border: rgba(255,255,255,0.10);
+   --hero-kpi-icon:  rgba(255,255,255,0.7);
+   --hero-kpi-label: rgba(255,255,255,0.55);
+   --hero-kpi-value: #ffffff;
+   --hero-kpi-accent-value: #a5b4fc;
+   --hero-action-bg: rgba(255,255,255,0.10);
+   --hero-action-border: rgba(255,255,255,0.16);
+   --hero-action-color: rgba(255,255,255,0.78);
+   --hero-toggle-track-bg: rgba(255,255,255,0.12);
+   --hero-toggle-track-border: rgba(255,255,255,0.18);
+}

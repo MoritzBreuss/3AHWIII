@@ -1,0 +1,216 @@
+/* ============================================================
+   AUTH PAGE — Login/Register
+   Matches dashboard design system (design-tokens.css)
+   ============================================================ */
+
+.page {
+  min-height: 100vh;
+  padding: 20px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-app);
+  position: relative;
+}
+
+.floatingThemeBtn {
+  position: fixed;
+  top: 16px; right: 16px;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(118,118,128,.14);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 50;
+  min-height: unset; min-width: unset; padding: 0;
+  transition: background var(--transition-fast), transform var(--transition-fast);
+}
+.floatingThemeBtn:hover {
+  background: rgba(118,118,128,.24);
+}
+.floatingThemeBtn:active { transform: scale(.95); }
+.floatingThemeBtn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sun { display: none; }
+:global([data-theme="dark"]) .sun { display: block; }
+:global([data-theme="dark"]) .moon { display: none; }
+
+.shell {
+  width: 100%; max-width: 420px;
+  display: grid; gap: 16px;
+}
+
+/* ---- Brand Block — uses same hero gradient as dashboard ---- */
+.brandBlock {
+  background: linear-gradient(148deg, var(--hero-grad-from) 0%, var(--hero-grad-to) 100%);
+  color: var(--hero-text);
+  border-radius: var(--r-xl);
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+  position: relative; overflow: hidden;
+}
+.decCircle1 {
+  position: absolute; top: -40px; right: -40px;
+  width: 160px; height: 160px;
+  border-radius: 50%;
+  background: var(--accent-subtle);
+  opacity: 0.35;
+  pointer-events: none;
+}
+.decCircle2 {
+  position: absolute; bottom: -30px; left: -20px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: var(--accent-subtle);
+  opacity: 0.25;
+  pointer-events: none;
+}
+.kicker {
+  font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--hero-kicker);
+  margin-bottom: 8px; font-weight: 600;
+}
+.heading {
+  font-size: clamp(1.7rem,6vw,2.1rem);
+  line-height: 1.1; margin-bottom: 10px;
+  font-weight: 700; color: var(--hero-title);
+}
+.lead {
+  color: var(--hero-subtitle);
+  font-size: 0.9rem; line-height: 1.55;
+  margin-bottom: 16px;
+}
+.pillRow { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill {
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hero-kpi-border);
+  background: var(--hero-kpi-bg);
+  color: var(--hero-kicker);
+  padding: 4px 10px; font-size: 0.75rem;
+  font-weight: 500; white-space: nowrap;
+  display: inline-flex; align-items: center;
+}
+
+/* ---- Auth Card — matches dashboard card style ---- */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 22px;
+  box-shadow: var(--shadow-md);
+  display: grid; gap: 0;
+}
+.tabRow {
+  background: var(--bg-subtle);
+  border-radius: var(--r-md);
+  padding: 4px;
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 4px; margin-bottom: 20px;
+}
+.tabButton {
+  border: none;
+  border-radius: var(--r-sm);
+  height: 42px; font-weight: 600;
+  color: var(--text-tertiary);
+  background: transparent;
+  cursor: pointer; font-size: 0.92rem;
+  min-height: 42px;
+  transition: all 0.2s ease;
+}
+.tabButtonActive {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+}
+.form { display: grid; gap: 14px; }
+.field { display: grid; gap: 6px; }
+.label {
+  font-size: 0.82rem; font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+.inputGroup {
+  position: relative;
+  display: flex; align-items: center;
+}
+.inputIcon {
+  position: absolute; left: 13px;
+  color: var(--text-tertiary);
+  display: flex; align-items: center;
+  pointer-events: none; z-index: 1;
+}
+.input {
+  width: 100%; min-height: 50px;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--border-strong);
+  padding-left: 42px; padding-right: 14px;
+  font-size: 1rem;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  -webkit-appearance: none; appearance: none;
+  transition: border-color var(--transition-fast);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+.errorBox {
+  border-radius: var(--r-md);
+  border: 1px solid var(--danger-border);
+  background: var(--danger-subtle);
+  color: var(--danger-text);
+  padding: 10px 12px; font-size: 0.88rem;
+  display: flex; align-items: flex-start;
+  gap: 8px; line-height: 1.4;
+}
+.primaryButton {
+  min-height: 52px;
+  border-radius: var(--r-md);
+  border: none; color: #ffffff;
+  font-weight: 700; font-size: 0.98rem;
+  background: linear-gradient(135deg, #4f46e5, #2563eb);
+  box-shadow: var(--shadow-glow);
+  cursor: pointer; margin-top: 4px;
+  letter-spacing: 0.01em;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+.primaryButton:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+.primaryButton:active:not(:disabled) {
+  transform: translateY(0);
+}
+.spinner {
+  display: inline-block;
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.switchHint {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  margin-top: 16px;
+}
+.switchLink {
+  background: none; border: none;
+  color: var(--accent);
+  font-weight: 600; cursor: pointer;
+  font-size: inherit; padding: 0;
+  min-height: unset; min-width: unset;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--transition-fast);
+}
+.switchLink:hover {
+  color: var(--accent-hover);
+}
