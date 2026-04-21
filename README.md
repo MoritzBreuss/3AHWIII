@@ -1,68 +1,65 @@
 # 3AHWIII - Uebungen und Projekte
 
-Dieses Repository enthaelt Uebungen aus dem Unterricht in Softwareentwicklung und Projektmanagement.
-Die Projekte sind nach Datum und Thema organisiert.
+Dieses Repository sammelt die Unterrichts- und Uebungsprojekte der 3AHWIII im Fach Softwareentwicklung und Projektmanagement.
+Die Inhalte sind  nach Datum und Thema organisiert und nutzen je nach Woche unterschiedliche Technologien.
 
-## Inhalt auf einen Blick
+## Was du hier findest
 
-- C# Grundlagen, OOP und Tests
-- Bruch-Rechnungen und xUnit-Testprojekte
+- .NET-Projekte (Grundlagen, OOP, Konsolenanwendungen, Tests)
+- xUnit-Testprojekte
 - Deno- und Prisma-Uebungen
-- CSV-Auswertung mit CsvHelper
+- kleinere Web- und Ferienprojekte (z. B. Next.js)
 
-## Projektuebersicht
+## Projektstruktur (Stand: 2026)
 
-| Ordner | Thema | Technologie |
+| Ordner | Inhalt | Technologie |
 | --- | --- | --- |
-| `2025-09-03/` | C# Grundlagen, MixedFraction | .NET |
-| `2025-09-24/` | Erste Deno- und Prisma-Schritte | Deno, Prisma |
-| `2025-10-08_deno_prisma_starter/` | Starterprojekt | Deno, Prisma |
-| `2025-10-15_prisma_loginsystem/` | Login-System | Deno, Prisma |
-| `2025-11-05_Brueche/` | Bruch-Klasse und Parsing | .NET |
-| `2025-11-17_Bruch_test_xunit/` | Tests fuer Bruch-Klasse | .NET, xUnit |
-| `2025-11-19/` | Kleines C# Teilprojekt | .NET |
-| `2025-11-30/` | Projekt + Testprojekt in einer Solution | .NET, xUnit |
-| `2026-01-07_CSV-helper/` | CSV lesen und ausgeben | .NET, CsvHelper |
-| `2026-03-11_Inventarsystem/` | Hausuebung Interfaces und Inventar | .NET |
-| `3AHWIII.Tests/` | Zentrales Testprojekt | .NET, xUnit |
-| `Ferienprojekte/` | Frontend- und Fullstack-Experimente (HTML, Next.js, Node) | HTML, TypeScript, Next.js, Node.js |
-| `test/` | Weitere Uebungs-/Experimentierprojekte | .NET |
+| `2025-09-03/` | C# Grundlagen und erste Klassen | .NET 9 |
+| `2025-09-24/` | Erste Schritte mit Deno und Prisma | Deno, Prisma |
+| `2025-10-08_deno_prisma_starter/` | Deno/Prisma Starterprojekt | Deno, Prisma |
+| `2025-10-15_prisma_loginsystem/` | Login-System mit Prisma | Deno, Prisma |
+| `2025-11/`, `2025-11-05_Brueche/`, `2025-11-17_Bruch_test_xunit/`, `2025-11-19/`, `2025-11-30/` | Bruch-Themen, kleine Teilprojekte und Tests | .NET, xUnit |
+| `2026-01-07_CSV-helper/` | CSV-Verarbeitung mit CsvHelper | .NET 8, CsvHelper |
+| `2026-03-11_Inventarsystem/`, `2026-03-18_Einkaufsliste/`, `2026-03-25_Lagerverwaltung/`, `2026-03-25_Wiederholung/` | Uebungen zu Interfaces, Listen und Verwaltungssystemen | .NET |
+| `2026-04-08_Inference/`, `2026-04-15_Inference/`, `2026-04-15_APIs/`, `2026-04-15_Blazor/` | Inference-, API- und Blazor-Uebungen | .NET, Web |
+| `3AHWIII.Tests/` | Zentrales Testprojekt fuer die Solution | .NET 9, xUnit |
+| `Ferienprojekte/` | Freie Frontend-/Fullstack-Experimente | HTML, TypeScript, Next.js, Node.js |
+
 
 ## Schnellstart
 
-### 1) Build ausfuehren
+### 1) Gesamte Solution bauen
 
 ```powershell
-dotnet build .\2025-11-05_Brueche\2025-11-05_Brueche.csproj
+dotnet build .\3AHWIII.sln
 ```
 
-### 2) Programm starten
-
-```powershell
-dotnet run --project .\2025-11-05_Brueche\2025-11-05_Brueche.csproj
-```
-
-### 3) Tests laufen lassen
+### 2) Tests ausfuehren
 
 ```powershell
 dotnet test .\3AHWIII.Tests\3AHWIII.Tests.csproj
 ```
 
-### 4) Deno-Projekt starten
+### 3) Beispielprojekt starten (.NET)
+
+```powershell
+dotnet run --project .\2025-11-05_Brueche\2025-11-05_Brueche.csproj
+```
+
+### 4) Beispielprojekt starten (Deno)
 
 ```powershell
 cd .\2025-10-08_deno_prisma_starter
 deno run -A main.ts
 ```
 
-## Reorganisation und Konventionen
+## Konventionen
 
-- Datumspraefix (`YYYY-MM-DD`) fuer Unterrichtsstaende.
-- Pro Thema ein eigener Ordner mit klar abgegrenztem Inhalt.
-- Build-Artefakte und lokale Entwicklungsdateien sind per `.gitignore` ausgeschlossen.
+- Ordnernamen folgen moeglichst dem Muster `YYYY-MM-DD_Thema`.
+- Pro Unterrichtsstand gibt es einen eigenen, klar abgegrenzten Ordner.
+- Lokale Build-Artefakte und Entwicklungsdateien sind per `.gitignore` ausgeschlossen.
 
-## Naechste sinnvolle Schritte
+## Hinweis
 
-- Pro Unterprojekt eine kurze README mit Ziel, Start und Test.
-- Einheitliche Benennung neuer Uebungsordner nach Datum und Thema.
-- Optional eine separate Solution fuer zusammengehoerige C# Projekte pro Monat.
+Nicht alle Unterordner sind Teil der Root-Solution `3AHWIII.sln`.
+Einige Projekte sind bewusst separat gehalten (z. B. Deno-, Blazor- oder Ferienprojekte) und haben eigene Startbefehle.
