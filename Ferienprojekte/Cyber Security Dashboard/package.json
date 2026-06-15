@@ -1,0 +1,13 @@
+{
+  "name": "cyber-security-dashboard",
+  "version": "1.0.0",
+  "description": "Security-Dashboard fuer DNS-, RDAP-, CVE- und Cybersecurity-News-Abfragen.",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

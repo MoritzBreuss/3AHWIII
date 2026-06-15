@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["lib/leaflet/leaflet.css"]" />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["IssTracker.styles.css"]" />
+    <ImportMap />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="@Assets["lib/leaflet/leaflet.js"]"></script>
+    <script>
+        window.loadMissionStyles = async () => {
+            const loadedStyles = window.__missionLoadedStyles ??= new Set();
+
+            const readText = async (src) => {
+                if (globalThis.fetch) {
+                    try {
+                        const response = await fetch(src, { cache: "no-store" });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+
+                        return await response.text();
+                    } catch {
+                    }
+                }
+
+                return await new Promise((resolve, reject) => {
+                    const request = new XMLHttpRequest();
+                    request.open("GET", src, true);
+                    request.overrideMimeType("text/plain");
+                    request.onload = () => {
+                        if (request.status < 200 || request.status >= 300) {
+                            reject(new Error(`Stylesheet konnte nicht geladen werden: ${src}`));
+                            return;
+                        }
+
+                        resolve(request.responseText);
+                    };
+                    request.onerror = () => reject(new Error(`Stylesheet konnte nicht geladen werden: ${src}`));
+                    request.send();
+                });
+            };
+
+            const appendStyle = async (id, src) => {
+                if (loadedStyles.has(id) || document.getElementById(id)) {
+                    return;
+                }
+
+                const style = document.createElement("style");
+                style.id = id;
+                style.textContent = await readText(src);
+                document.head.appendChild(style);
+                loadedStyles.add(id);
+            };
+
+            await appendStyle("runtime-bootstrap-css", "/runtime/bootstrap.css");
+            await appendStyle("runtime-leaflet-css", "/runtime/leaflet.css");
+            await appendStyle("runtime-app-css", "/runtime/app.css");
+        };
+
+        window.loadMissionStyles();
+
+        window.loadIssMapScript = async () => {
+            await window.loadMissionStyles();
+            const loadedScripts = window.__issLoadedScripts ??= new Set();
+            const readScript = async (src) => {
+                if (globalThis.fetch) {
+                    try {
+                        const response = await fetch(src, { cache: "no-store" });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+
+                        return await response.text();
+                    } catch {
+                    }
+                }
+
+                return await new Promise((resolve, reject) => {
+                    const request = new XMLHttpRequest();
+                    request.open("GET", src, true);
+                    request.overrideMimeType("text/plain");
+                    request.onload = () => {
+                        if (request.status < 200 || request.status >= 300) {
+                            reject(new Error(`Script konnte nicht geladen werden: ${src}`));
+                            return;
+                        }
+
+                        resolve(request.responseText);
+                    };
+                    request.onerror = () => reject(new Error(`Script konnte nicht geladen werden: ${src}`));
+                    request.send();
+                });
+            };
+
+            const evaluateScript = async (src) => {
+                if (loadedScripts.has(src)) {
+                    return;
+                }
+
+                const scriptText = await readScript(src);
+                (0, eval)(`${scriptText}\n//# sourceURL=${src}`);
+                loadedScripts.add(src);
+            };
+
+            if (!globalThis.L) {
+                await evaluateScript("/runtime/leaflet.js");
+            }
+
+            if (!globalThis.initializeMap) {
+                await evaluateScript("/runtime/issMap.js");
+            }
+        };
+
+        window.initializeIssMapRuntime = async (elementId) => {
+            await window.loadIssMapScript();
+
+            if (!globalThis.initializeMap) {
+                throw new Error("initializeMap wurde nach dem Laden von issMap.js nicht registriert.");
+            }
+
+            globalThis.initializeMap(elementId);
+        };
+
+        window.updateIssMapPosition = (latitude, longitude, locationLabel, updatedAt) => {
+            globalThis.updateIssPosition(latitude, longitude, locationLabel, updatedAt);
+        };
+
+        window.updateIssMapFlightPath = (points) => {
+            globalThis.updateFlightPath(points);
+        };
+
+        window.loadStoredFlightPathRuntime = () => {
+            const storageKey = "iss-mission-board.flightPath.v1";
+            const maxPoints = 50;
+
+            try {
+                const storedValue = window.localStorage.getItem(storageKey);
+
+                if (!storedValue) {
+                    return [];
+                }
+
+                const points = JSON.parse(storedValue);
+
+                if (!Array.isArray(points)) {
+                    window.localStorage.removeItem(storageKey);
+                    return [];
+                }
+
+                return points
+                    .map((point) => ({
+                        latitude: Number(point.latitude),
+                        longitude: Number(point.longitude),
+                        timestamp: point.timestamp
+                    }))
+                    .filter((point) =>
+                        Number.isFinite(point.latitude) &&
+                        Number.isFinite(point.longitude) &&
+                        typeof point.timestamp === "string" &&
+                        point.timestamp.length > 0)
+                    .slice(-maxPoints);
+            } catch {
+                window.localStorage.removeItem(storageKey);
+                return [];
+            }
+        };
+
+        window.saveFlightPathRuntime = (points) => {
+            const storageKey = "iss-mission-board.flightPath.v1";
+            const maxPoints = 50;
+
+            let pointList = Array.isArray(points)
+                ? points
+                : Object.values(points ?? {});
+            const firstPoint = pointList[0];
+
+            if (pointList.length > 0 && typeof firstPoint !== "object") {
+                const groupedPoints = [];
+
+                for (let index = 0; index < pointList.length; index += 3) {
+                    groupedPoints.push([
+                        pointList[index],
+                        pointList[index + 1],
+                        pointList[index + 2]
+                    ]);
+                }
+
+                pointList = groupedPoints;
+            }
+
+            const normalizedPoints = pointList
+                .map((point) => {
+                    if (Array.isArray(point)) {
+                        return {
+                            latitude: Number(point[0]),
+                            longitude: Number(point[1]),
+                            timestamp: String(point[2] ?? "")
+                        };
+                    }
+
+                    return {
+                        latitude: Number(point.latitude ?? point.Latitude),
+                        longitude: Number(point.longitude ?? point.Longitude),
+                        timestamp: String(point.timestamp ?? point.Timestamp ?? "")
+                    };
+                })
+                .filter((point) =>
+                    Number.isFinite(point.latitude) &&
+                    Number.isFinite(point.longitude) &&
+                    typeof point.timestamp === "string" &&
+                    point.timestamp.length > 0)
+                .slice(-maxPoints);
+
+            window.localStorage.setItem(storageKey, JSON.stringify(normalizedPoints));
+            return normalizedPoints.length;
+        };
+
+        window.saveFlightPathJsonRuntime = (pointsJson) => {
+            const points = JSON.parse(pointsJson);
+            return window.saveFlightPathRuntime(points);
+        };
+
+        window.reverseGeocodeIssPosition = async (latitude, longitude) => {
+            const oceanLabel = "Über dem Ozean / Internationales Gewässer";
+            const uniqueParts = (parts) => parts.filter((value, index, values) => {
+                const normalized = String(value ?? "").trim();
+                return normalized.length > 0 &&
+                    values.findIndex((candidate) => String(candidate ?? "").trim().toLowerCase() === normalized.toLowerCase()) === index;
+            });
+
+            const formatLocation = (parts) => {
+                const normalizedParts = uniqueParts(parts);
+                return normalizedParts.length === 0 ? oceanLabel : normalizedParts.join(", ");
+            };
+
+            const readBigDataCloud = async () => {
+                const endpoint = new URL("https://api.bigdatacloud.net/data/reverse-geocode-client");
+                endpoint.searchParams.set("latitude", latitude);
+                endpoint.searchParams.set("longitude", longitude);
+                endpoint.searchParams.set("localityLanguage", "de");
+
+                const response = await fetch(endpoint.toString(), {
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.status && data.status >= 400) {
+                    throw new Error(data.description ?? "Reverse Geocoding fehlgeschlagen.");
+                }
+
+                return formatLocation([
+                    data.city,
+                    data.locality,
+                    data.principalSubdivision,
+                    data.countryName
+                ]);
+            };
+
+            const readNominatimFallback = async () => {
+                const endpoint = new URL("https://nominatim.openstreetmap.org/reverse");
+                endpoint.searchParams.set("format", "jsonv2");
+                endpoint.searchParams.set("lat", latitude);
+                endpoint.searchParams.set("lon", longitude);
+                endpoint.searchParams.set("accept-language", "de");
+
+                const response = await fetch(endpoint.toString(), {
+                    headers: {
+                        "Accept": "application/json"
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    return oceanLabel;
+                }
+
+                const address = data.address ?? {};
+
+                return formatLocation([
+                    address.city ?? address.town ?? address.village ?? address.hamlet,
+                    address.state ?? address.region ?? address.county,
+                    address.country
+                ]);
+            };
+
+            try {
+                return await readBigDataCloud();
+            } catch {
+                return await readNominatimFallback();
+            }
+        };
+    </script>
+    <script src="_framework/blazor.web.js"></script>
+</body>
+
+</html>

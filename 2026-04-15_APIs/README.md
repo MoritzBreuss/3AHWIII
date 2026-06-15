@@ -11,19 +11,31 @@ Dieses Dokument fasst meine Auswahl aus dem Repository [public-apis/public-apis]
 | Strava | Sports & Fitness | OAuth | Bietet Zugriff auf Aktivitätsdaten wie Distanz, Pace, Herzfrequenz und Dauer. Perfekt für Trainingsanalyse und Fortschrittskontrolle. |
 
 ## Verbesserungs- und Änderungsvorschläge
-Es war mir leidet nicht klar erkennbar wozu ich verbesserungsvorschläge machen soll. Zu dem Github Repository "public-apis/public-apis" oder zu dem Problem welches ich mit meiner Traum App lösen soll.
+
+Bezogen auf die ausgewählten APIs für meine Traum-App:
+
+- **Open Food Facts:** Da die Daten teils von Nutzern stammen, sind Felder nicht immer vollständig. Eine clientseitige Validierung und Fallback-Werte (z. B. "Nährwert unbekannt") verbessern die Robustheit.
+- **OpenWeatherMap:** Der API-Key sollte nicht im Frontend liegen. Sinnvoll ist ein kleiner Backend-Proxy, der den Key kapselt und Antworten cached (Rate-Limit schonen).
+- **Strava:** Der OAuth-Flow ist aufwändig. Refresh-Tokens sollten serverseitig sicher gespeichert und Access-Tokens automatisch erneuert werden.
 
 ## Traum-App bis Ende Semester: TrainSmart Dashboard
 
-TrainSmart ist ein Web-Dashboard, das Trainingsdaten, Wetter und Ernährung bündelt.
-
+TrainSmart ist ein Web-Dashboard, das Trainingsdaten von Strava.com anzeigt.
 
 
 ### Kernfunktionen 
 
-1. Strava-Import: Letzte Aktivitäten und Kennzahlen anzeigen.
-2. Wetterabgleich: Aktuelles Wetter und Prognose zum Trainingszeitpunkt anzeigen.
-3. Ernährungscheck: Lebensmittel suchen und kurze Hinweise vor oder nach dem Training geben.
+1. Abrufen aller verfügbaren Aktivitäten
+2. Anzeige von Basis- und Detailmetriken
+3. Zugriff auf Rohdaten (Streams)
+4. Export als Datei + Copy-to-Clipboard Funktion
+5. Dashboard mit allen Daten und Visualisierungen: Diagramme (über Distanz und Zeit) sowie Tabellen.
+
+### Technischer Plan
+
+- **Frontend:** Blazor (passend zu den übrigen .NET-Projekten im Repository).
+- **Datenzugriff:** Strava-API über die REST-Bausteine aus [`2026-05-20_rest/`](../2026-05-20_rest/).
+- **Persistenz:** EF Core + SQLite (siehe [`2026-05-13_Hausuebung/`](../2026-05-13_Hausuebung/)).
 
 
 

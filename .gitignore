@@ -1,7 +1,7 @@
 # Build artifacts
 **/bin/
 **/obj/
-
+**/.claude/
 # IDE settings
 **/.idea/
 .vs/
@@ -19,6 +19,10 @@
 # Environment files
 **/.env
 **/.env.*
+
+# Local Claude/IDE settings and run logs
+**/.claude/settings.local.json
+**/run.log
 
 # Prisma generated engines or clients
 **/prisma/client/

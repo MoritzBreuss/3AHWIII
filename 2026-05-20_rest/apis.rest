@@ -1,0 +1,52 @@
+# =============================================================================
+# Strava API – REST-Client-Collection
+# -----------------------------------------------------------------------------
+# Reihenfolge: 1) Authorisieren  2) Access-Token refreshen  3) Endpunkte testen.
+# Ausfuehren mit der VS-Code-Erweiterung "REST Client" (Klick auf "Send Request").
+# Doku: https://developers.strava.com/docs/reference/
+# =============================================================================
+
+# Basis-URLs als Variablen, damit Endpunkte unten kurz bleiben.
+@stravaBaseUrl = https://www.strava.com
+@stravaApiBaseUrl = https://www.strava.com/api/v3
+@redirectUri = http://localhost/exchange_token
+
+# Fill in these values from https://www.strava.com/settings/api
+# ACHTUNG: Keine echten Secrets committen! Lokal eintragen, hier nur Platzhalter.
+@clientId = YOUR_CLIENT_ID
+@clientSecret = YOUR_CLIENT_SECRET
+@refreshToken = YOUR_REFRESH_TOKEN
+
+### 1) App autorisieren (im Browser oeffnen)
+# Oeffnet den Strava-Login. Nach der Zustimmung wird der "code" an die redirectUri angehaengt.
+# Scopes: activity:read + activity:write werden fuer die Aktivitaets-Endpunkte benoetigt.
+GET {{stravaBaseUrl}}/oauth/authorize?client_id={{clientId}}&response_type=code&redirect_uri={{redirectUri}}&approval_prompt=force&scope=read,activity:read,activity:write,profile:read_all
+
+### 2) Access-Token erneuern
+# Tauscht den langlebigen refreshToken gegen einen kurzlebigen access_token.
+# @name refresh  -> erlaubt es, die Antwort unten per {{refresh.response...}} weiterzuverwenden.
+POST {{stravaBaseUrl}}/oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+client_id={{clientId}}&client_secret={{clientSecret}}&grant_type=refresh_token&refresh_token={{refreshToken}}
+
+### access_token aus der Antwort oben uebernehmen
+@accessToken = {{refresh.response.body.$.access_token}}
+
+### 3) Angemeldeten Athleten abrufen
+# Liefert das Profil des Token-Besitzers (Name, ID, Stadt, ...).
+GET {{stravaApiBaseUrl}}/athlete
+Authorization: Bearer {{accessToken}}
+
+### 4) Aktivitaeten des Athleten auflisten
+# per_page = Eintraege pro Seite, page = Seitennummer (Paginierung).
+GET {{stravaApiBaseUrl}}/athlete/activities?per_page=10&page=1
+Authorization: Bearer {{accessToken}}
+
+### 5) Aktivitaet manuell anlegen
+# Erstellt einen 10-km-Lauf als Beispiel. distance in Metern, elapsed_time in Sekunden.
+POST {{stravaApiBaseUrl}}/activities
+Authorization: Bearer {{accessToken}}
+Content-Type: application/x-www-form-urlencoded
+
+name=Morning Run&sport_type=Run&start_date_local=2026-05-20T07:00:00Z&elapsed_time=3600&description=A nice morning run around the park.&distance=10000&trainer=0&commute=0

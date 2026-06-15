@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Cyber Security Dashboard</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Security Operations</p>
+        <h1>Cyber Security Dashboard</h1>
+      </div>
+      <div class="header-actions">
+        <span class="connection-pill" id="connectionStatus">Verbindung pruefen</span>
+        <button class="icon-button" id="refreshNewsButton" type="button" title="News aktualisieren" aria-label="News aktualisieren">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6v6h-6"></path><path d="M4 18v-6h6"></path><path d="M18.5 9A7 7 0 0 0 6 6.5L4 9"></path><path d="M5.5 15A7 7 0 0 0 18 17.5l2-2.5"></path></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="metric-grid" aria-label="Security Kennzahlen">
+        <article class="metric">
+          <span>Quellen</span>
+          <strong>4</strong>
+          <small>DNS, RDAP, NVD, RSS</small>
+        </article>
+        <article class="metric">
+          <span>Lookup-Modi</span>
+          <strong>3</strong>
+          <small>IP, Domain, CVE</small>
+        </article>
+        <article class="metric alert">
+          <span>Severity-Fokus</span>
+          <strong id="severityFocus">CVSS</strong>
+          <small>bewertet nach NVD</small>
+        </article>
+        <article class="signal-map" aria-label="Threat Signal Visualisierung">
+          <img src="./assets/signal-map.svg" alt="Abstrakte Netzwerkkarte mit Security-Signalen">
+        </article>
+      </section>
+
+      <section class="workspace">
+        <div class="lookup-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Analyse</p>
+              <h2>Abfrage starten</h2>
+            </div>
+            <div class="tabs" role="tablist" aria-label="Abfragetyp">
+              <button class="tab active" type="button" data-mode="dns">DNS</button>
+              <button class="tab" type="button" data-mode="rdap">WHOIS</button>
+              <button class="tab" type="button" data-mode="cve">CVE</button>
+            </div>
+          </div>
+
+          <form class="lookup-form" id="lookupForm">
+            <label for="lookupInput" id="lookupLabel">Domain</label>
+            <div class="lookup-row">
+              <input id="lookupInput" name="lookupInput" autocomplete="off" spellcheck="false" value="openai.com">
+              <select id="dnsType" name="dnsType" aria-label="DNS-Typ">
+                <option>A</option>
+                <option>AAAA</option>
+                <option>MX</option>
+                <option>NS</option>
+                <option>TXT</option>
+                <option>CNAME</option>
+                <option>SOA</option>
+                <option>CAA</option>
+              </select>
+              <button class="primary-button" type="submit">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+                Analysieren
+              </button>
+            </div>
+          </form>
+
+          <div class="quick-actions" aria-label="Beispiele">
+            <button type="button" data-example="openai.com" data-mode="dns">openai.com</button>
+            <button type="button" data-example="8.8.8.8" data-mode="rdap">8.8.8.8</button>
+            <button type="button" data-example="CVE-2024-3094" data-mode="cve">CVE-2024-3094</button>
+            <button type="button" data-example="openssl" data-mode="cve">openssl</button>
+          </div>
+
+          <div class="result-panel" id="resultPanel">
+            <div class="empty-state">
+              <strong>Bereit fuer die erste Abfrage</strong>
+              <span>Waehle einen Modus und starte die Analyse.</span>
+            </div>
+          </div>
+        </div>
+
+        <aside class="side-panel">
+          <div class="panel-heading compact">
+            <div>
+              <p class="eyebrow">Live Feed</p>
+              <h2>Cybersecurity-News</h2>
+            </div>
+          </div>
+          <div class="news-list" id="newsList">
+            <div class="skeleton"></div>
+            <div class="skeleton short"></div>
+            <div class="skeleton"></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="activity-section">
+        <div class="panel-heading compact">
+          <div>
+            <p class="eyebrow">Timeline</p>
+            <h2>Letzte Aktionen</h2>
+          </div>
+          <button class="text-button" id="clearLogButton" type="button">Leeren</button>
+        </div>
+        <ol class="activity-log" id="activityLog"></ol>
+      </section>
+    </main>
+
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

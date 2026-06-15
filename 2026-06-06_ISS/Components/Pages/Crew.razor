@@ -1,0 +1,107 @@
+@page "/crew"
+@implements IDisposable
+@inject IIssApiService IssApi
+
+<PageTitle>Crew | ISS Mission Board</PageTitle>
+
+<div class="dashboard-header mb-4">
+    <div>
+        <span class="eyebrow">Open Notify</span>
+        <h1>Crew Manifest</h1>
+    </div>
+    <span class="badge rounded-pill text-bg-primary">Live</span>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @_errorMessage
+    </div>
+}
+
+@if (_isLoading)
+{
+    <div class="card telemetry-card">
+        <div class="card-body d-flex align-items-center gap-3">
+            <div class="spinner-border text-primary" role="status" aria-label="Lade Astronautendaten"></div>
+            <div>
+                <div class="fw-semibold">Crew-Daten werden geladen</div>
+                <div class="text-secondary small">Verbindung zu Open Notify</div>
+            </div>
+        </div>
+    </div>
+}
+else if (_manifest is not null)
+{
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card telemetry-card h-100">
+                <div class="card-body">
+                    <div class="metric-label">Astronauten im All</div>
+                    <div class="metric-value">@_manifest.Count</div>
+                    <span class="badge text-bg-success">Aktuell</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card telemetry-card h-100">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0">Personen und Raumfahrzeuge</h2>
+                    <span class="badge text-bg-secondary">@_manifest.People.Count Einträge</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Raumschiff</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var astronaut in _manifest.People)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@astronaut.Name</td>
+                                    <td><span class="badge text-bg-dark">@astronaut.Craft</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
+    private AstronautManifest? _manifest;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _manifest = await IssApi.GetAstronautsAsync(_cancellationTokenSource.Token);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception)
+        {
+            _errorMessage = "Die Astronauten-Daten konnten nicht geladen werden. Bitte später erneut versuchen.";
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _cancellationTokenSource.Cancel();
+        _cancellationTokenSource.Dispose();
+    }
+}

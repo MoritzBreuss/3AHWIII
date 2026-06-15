@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Länder der Welt erkunden: Hauptstadt, Bevölkerung, Währung und Flagge. Interaktive Weltkarte, Länder-Vergleich und Geografie-Quiz."/>
+  <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)"/>
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)"/>
+  <title>Country Explorer</title>
+
+  <!-- Leaflet (gleiche Karten-Bibliothek wie im ISS-Projekt) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Design-Tokens ── */
+    :root {
+      --radius: 18px;
+      --radius-sm: 12px;
+      --transition: .25s ease;
+      --maxw: 1100px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg:           #f2f2f7;
+      --bg2:          #e5e5ea;
+      --surface:      #ffffff;
+      --surface2:     #f5f5f7;
+      --surface-hover:#e9e9ee;
+      --ink:          #1c1c1e;
+      --muted:        #6c6c70;
+      --muted2:       #aeaeb2;
+      --accent:       #3a6f96;
+      --accent-hover: #2e5f82;
+      --border:       rgba(0,0,0,.10);
+      --shadow-sm:    0 1px 3px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.05);
+      --shadow-md:    0 4px 16px rgba(0,0,0,.08);
+      --good:         #2f9e57;
+      --bad:          #d1453b;
+      --map-bg:       #cfe3ef;
+      --map-fill:     #9bbed6;
+      --map-stroke:   #ffffff;
+      color-scheme: light;
+    }
+
+    [data-theme="dark"] {
+      --bg:           #000000;
+      --bg2:          #1c1c1e;
+      --surface:      #1c1c1e;
+      --surface2:     #2c2c2e;
+      --surface-hover:#3a3a3c;
+      --ink:          #ffffff;
+      --muted:        #98989f;
+      --muted2:       #6c6c70;
+      --accent:       #5a9fce;
+      --accent-hover: #74b2dd;
+      --border:       rgba(255,255,255,.12);
+      --shadow-sm:    0 1px 3px rgba(0,0,0,.4);
+      --shadow-md:    0 4px 16px rgba(0,0,0,.5);
+      --good:         #34c759;
+      --bad:          #ff453a;
+      --map-bg:       #0b1722;
+      --map-fill:     #20445f;
+      --map-stroke:   #0b1722;
+      color-scheme: dark;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      transition: background var(--transition), color var(--transition);
+    }
+
+    /* ── Kopfzeile + Navigation ── */
+    header {
+      position: sticky; top: 0; z-index: 1000;
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .bar {
+      max-width: var(--maxw); margin: 0 auto;
+      padding: 14px 20px;
+      display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; }
+    .brand .globe { font-size: 1.5rem; }
+    nav { display: flex; gap: 4px; background: var(--surface2); padding: 4px; border-radius: 999px; }
+    nav button {
+      border: none; background: transparent; color: var(--muted);
+      font: inherit; font-weight: 600; font-size: .9rem;
+      padding: 7px 16px; border-radius: 999px; cursor: pointer;
+      transition: var(--transition);
+    }
+    nav button.active { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-sm); }
+    nav button:hover:not(.active) { color: var(--ink); }
+    .spacer { flex: 1; }
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--ink); cursor: pointer; font-size: 1.1rem;
+      display: grid; place-items: center; transition: var(--transition);
+    }
+    .icon-btn:hover { background: var(--surface-hover); }
+
+    main { max-width: var(--maxw); margin: 0 auto; padding: 22px 20px 60px; }
+    .view { display: none; animation: fade .3s ease; }
+    .view.active { display: block; }
+    @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    h2.section { font-size: 1.5rem; margin-bottom: 4px; }
+    p.sub { color: var(--muted); margin-bottom: 18px; font-size: .95rem; }
+
+    /* ── Suchleiste / Filter ── */
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+    input[type="search"], select {
+      font: inherit; color: var(--ink); background: var(--surface);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 11px 14px; transition: var(--transition);
+    }
+    input[type="search"] { flex: 1; min-width: 200px; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+
+    /* ── Länder-Raster ── */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; cursor: pointer;
+      box-shadow: var(--shadow-sm); transition: var(--transition);
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .card img.flag { width: 100%; aspect-ratio: 3/2; object-fit: cover; display: block; background: var(--surface2); }
+    .card .body { padding: 12px 14px; }
+    .card .body h3 { font-size: 1rem; margin-bottom: 3px; line-height: 1.2; }
+    .card .body span { color: var(--muted); font-size: .82rem; }
+
+    .empty { text-align: center; color: var(--muted); padding: 50px 0; }
+    .loading { text-align: center; color: var(--muted); padding: 60px 0; }
+    .loading .spin {
+      width: 34px; height: 34px; margin: 0 auto 14px;
+      border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Karte ── */
+    #map { height: 540px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--map-bg); box-shadow: var(--shadow-sm); }
+    .leaflet-container { background: var(--map-bg); font: inherit; }
+    .map-hint { color: var(--muted); font-size: .85rem; margin-top: 10px; text-align: center; }
+
+    /* ── Detail-Panel (Modal) ── */
+    .overlay {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(0,0,0,.45); backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .overlay.open { display: flex; animation: fade .2s ease; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius);
+      max-width: 460px; width: 100%; max-height: 88vh; overflow-y: auto;
+      box-shadow: var(--shadow-md); border: 1px solid var(--border);
+    }
+    .modal .hero { position: relative; }
+    .modal .hero img { width: 100%; aspect-ratio: 3/2; object-fit: cover; display: block; }
+    .modal .close {
+      position: absolute; top: 12px; right: 12px;
+      width: 34px; height: 34px; border-radius: 50%; border: none;
+      background: rgba(0,0,0,.55); color: #fff; cursor: pointer; font-size: 1.1rem;
+    }
+    .modal .content { padding: 18px 20px 22px; }
+    .modal h3 { font-size: 1.45rem; margin-bottom: 2px; }
+    .modal .native { color: var(--muted); font-size: .9rem; margin-bottom: 16px; }
+    .facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .fact { background: var(--surface2); border-radius: var(--radius-sm); padding: 11px 13px; }
+    .fact .k { color: var(--muted); font-size: .72rem; text-transform: uppercase; letter-spacing: .03em; }
+    .fact .v { font-weight: 600; font-size: .98rem; margin-top: 2px; word-break: break-word; }
+    .fact.wide { grid-column: 1 / -1; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+      width: 100%; margin-top: 16px;
+      background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm);
+      font: inherit; font-weight: 600; padding: 12px; cursor: pointer; transition: var(--transition);
+    }
+    .btn:hover { background: var(--accent-hover); }
+    .btn.ghost { background: var(--surface2); color: var(--ink); border: 1px solid var(--border); }
+    .btn.ghost:hover { background: var(--surface-hover); }
+
+    /* ── Vergleich ── */
+    .compare-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+    .compare-pick select { width: 100%; }
+    .cmp-table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
+    .cmp-table th, .cmp-table td { padding: 13px 15px; text-align: left; border-bottom: 1px solid var(--border); font-size: .95rem; }
+    .cmp-table th { background: var(--surface2); }
+    .cmp-table td.metric { color: var(--muted); font-weight: 600; }
+    .cmp-table tr:last-child td, .cmp-table tr:last-child th { border-bottom: none; }
+    .cmp-flag { display: flex; align-items: center; gap: 9px; font-weight: 700; }
+    .cmp-flag img { width: 34px; height: 23px; object-fit: cover; border-radius: 3px; }
+    .win { color: var(--good); font-weight: 700; }
+
+    /* ── Quiz ── */
+    .quiz-modes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .quiz-modes button {
+      font: inherit; font-weight: 600; font-size: .9rem; cursor: pointer;
+      padding: 9px 16px; border-radius: 999px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--ink); transition: var(--transition);
+    }
+    .quiz-modes button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .quiz-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px 22px; box-shadow: var(--shadow-sm); text-align: center; }
+    .quiz-score { display: flex; justify-content: center; gap: 26px; margin-bottom: 18px; color: var(--muted); font-size: .9rem; }
+    .quiz-score b { color: var(--ink); font-size: 1.15rem; }
+    .quiz-q { font-size: 1.25rem; font-weight: 700; margin-bottom: 20px; }
+    .quiz-q img { width: 180px; max-width: 70%; aspect-ratio: 3/2; object-fit: cover; border-radius: var(--radius-sm); border: 1px solid var(--border); margin: 0 auto; display: block; }
+    .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 520px; margin: 0 auto; }
+    .quiz-options button {
+      font: inherit; font-weight: 600; cursor: pointer; padding: 15px 12px;
+      border-radius: var(--radius-sm); border: 1px solid var(--border);
+      background: var(--surface2); color: var(--ink); transition: var(--transition);
+    }
+    .quiz-options button:hover:not(:disabled) { background: var(--surface-hover); }
+    .quiz-options button.correct { background: var(--good); color: #fff; border-color: var(--good); }
+    .quiz-options button.wrong { background: var(--bad); color: #fff; border-color: var(--bad); }
+    .quiz-options button:disabled { cursor: default; }
+    .quiz-next { margin-top: 20px; }
+
+    footer { text-align: center; color: var(--muted2); font-size: .8rem; padding: 30px 20px; }
+    footer a { color: var(--muted); }
+
+    @media (max-width: 560px) {
+      .facts { grid-template-columns: 1fr; }
+      .compare-pick, .quiz-options { grid-template-columns: 1fr; }
+      .brand span.txt { display: none; }
+      nav button { padding: 7px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div class="brand"><span class="globe">🌍</span><span class="txt">Country Explorer</span></div>
+      <nav id="nav">
+        <button data-view="explore" class="active">Entdecken</button>
+        <button data-view="map">Karte</button>
+        <button data-view="compare">Vergleich</button>
+        <button data-view="quiz">Quiz</button>
+      </nav>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="theme" title="Hell/Dunkel umschalten">🌙</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ── Entdecken ── -->
+    <section class="view active" id="view-explore">
+      <h2 class="section">Länder entdecken</h2>
+      <p class="sub">Durchsuche alle Länder der Welt und sieh dir Details an.</p>
+      <div class="controls">
+        <input type="search" id="search" placeholder="Land suchen…" autocomplete="off"/>
+        <select id="region">
+          <option value="">Alle Regionen</option>
+          <option value="Africa">Afrika</option>
+          <option value="Americas">Amerika</option>
+          <option value="Asia">Asien</option>
+          <option value="Europe">Europa</option>
+          <option value="Oceania">Ozeanien</option>
+          <option value="Antarctic">Antarktis</option>
+        </select>
+        <select id="sort">
+          <option value="name">Name (A–Z)</option>
+          <option value="pop-desc">Bevölkerung ↓</option>
+          <option value="pop-asc">Bevölkerung ↑</option>
+          <option value="area-desc">Fläche ↓</option>
+        </select>
+      </div>
+      <div id="grid" class="grid"></div>
+      <div id="explore-state"></div>
+    </section>
+
+    <!-- ── Karte ── -->
+    <section class="view" id="view-map">
+      <h2 class="section">Interaktive Weltkarte</h2>
+      <p class="sub">Klicke ein Land an, um seine Informationen zu sehen.</p>
+      <div id="map"></div>
+      <p class="map-hint" id="map-hint">Karte wird geladen…</p>
+    </section>
+
+    <!-- ── Vergleich ── -->
+    <section class="view" id="view-compare">
+      <h2 class="section">Länder vergleichen</h2>
+      <p class="sub">Wähle zwei Länder und vergleiche ihre Kennzahlen.</p>
+      <div class="compare-pick">
+        <select id="cmp-a"></select>
+        <select id="cmp-b"></select>
+      </div>
+      <div id="cmp-result"></div>
+    </section>
+
+    <!-- ── Quiz ── -->
+    <section class="view" id="view-quiz">
+      <h2 class="section">Geografie-Quiz</h2>
+      <p class="sub">Trainiere dein Wissen über Flaggen, Hauptstädte und Bevölkerung.</p>
+      <div class="quiz-modes" id="quiz-modes">
+        <button data-mode="flag" class="active">Flagge → Land</button>
+        <button data-mode="capital">Hauptstadt</button>
+        <button data-mode="population">Größere Bevölkerung</button>
+      </div>
+      <div class="quiz-card" id="quiz-card"></div>
+    </section>
+  </main>
+
+  <!-- ── Detail-Modal ── -->
+  <div class="overlay" id="overlay">
+    <div class="modal" id="modal"></div>
+  </div>
+
+  <footer>
+    Länderdaten: <a href="https://github.com/mledoze/countries" target="_blank" rel="noopener">mledoze/countries</a> &amp;
+    <a href="https://github.com/samayo/country-json" target="_blank" rel="noopener">country-json</a> ·
+    Flaggen: <a href="https://flagcdn.com" target="_blank" rel="noopener">flagcdn</a> ·
+    Karte mit <a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+  "use strict";
+
+  // ── Datenquellen ─────────────────────────────────────────────────────────────
+  // Länderdaten liegen lokal gebündelt (kein API-Key/Limit, offline nutzbar).
+  // Quelle: github.com/mledoze/countries, aufbereitet zu countries.json.
+  const COUNTRIES_URL = "./countries.json";
+  // Ländergrenzen für die Karte (wird zur Laufzeit geladen).
+  const GEOJSON_URL = "https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries.geo.json";
+
+  // ── Zustand ────────────────────────────────────────────────────────────────
+  let countries = [];           // alle geladenen Länder
+  const byCca3 = new Map();     // schneller Zugriff über ISO-3-Code
+  const nf = new Intl.NumberFormat("de-DE");   // Tausenderpunkte
+  let map = null, geoLayer = null, mapReady = false;
+
+  // ── Hilfsfunktionen ──────────────────────────────────────────────────────────
+  const $  = (sel) => document.querySelector(sel);
+  const $$ = (sel) => [...document.querySelectorAll(sel)];
+
+  const capitalOf  = (c) => (c.capital && c.capital[0]) || "—";
+  const popOf      = (c) => c.population ? nf.format(c.population) : "k. A.";
+  const currencyOf = (c) => c.currencies
+    ? Object.values(c.currencies).map(x => x.name + (x.symbol ? ` (${x.symbol})` : "")).join(", ")
+    : "—";
+  const languagesOf = (c) => c.languages ? Object.values(c.languages).join(", ") : "—";
+
+  // ── Daten laden ──────────────────────────────────────────────────────────────
+  async function loadCountries() {
+    const res = await fetch(COUNTRIES_URL);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    countries = data
+      .filter(c => c.name && c.cca3)
+      .sort((a, b) => a.name.common.localeCompare(b.name.common));
+    countries.forEach(c => byCca3.set(c.cca3, c));
+  }
+
+  // ── Entdecken: Raster rendern ────────────────────────────────────────────────
+  function renderGrid() {
+    const q = $("#search").value.trim().toLowerCase();
+    const region = $("#region").value;
+    const sort = $("#sort").value;
+
+    let list = countries.filter(c => {
+      const matchesQ = !q || c.name.common.toLowerCase().includes(q)
+        || (c.name.official && c.name.official.toLowerCase().includes(q))
+        || capitalOf(c).toLowerCase().includes(q);
+      const matchesR = !region || c.region === region;
+      return matchesQ && matchesR;
+    });
+
+    list.sort((a, b) => {
+      switch (sort) {
+        case "pop-desc":  return b.population - a.population;
+        case "pop-asc":   return a.population - b.population;
+        case "area-desc": return (b.area || 0) - (a.area || 0);
+        default:          return a.name.common.localeCompare(b.name.common);
+      }
+    });
+
+    const grid = $("#grid");
+    grid.innerHTML = "";
+    if (list.length === 0) {
+      $("#explore-state").innerHTML = '<p class="empty">Kein Land gefunden.</p>';
+      return;
+    }
+    $("#explore-state").innerHTML = "";
+
+    const frag = document.createDocumentFragment();
+    list.forEach(c => {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+        <img class="flag" loading="lazy" src="${c.flags.png}" alt="Flagge von ${c.name.common}"/>
+        <div class="body">
+          <h3>${c.name.common}</h3>
+          <span>${capitalOf(c)} · ${popOf(c)}</span>
+        </div>`;
+      card.addEventListener("click", () => openDetail(c.cca3));
+      frag.appendChild(card);
+    });
+    grid.appendChild(frag);
+  }
+
+  // ── Detail-Modal ─────────────────────────────────────────────────────────────
+  function openDetail(cca3) {
+    const c = byCca3.get(cca3);
+    if (!c) return;
+    const density = (c.area && c.population) ? Math.round(c.population / c.area) : null;
+    $("#modal").innerHTML = `
+      <div class="hero">
+        <img src="${c.flags.svg || c.flags.png}" alt="${c.flags.alt || ('Flagge von ' + c.name.common)}"/>
+        <button class="close" id="modal-close" aria-label="Schließen">✕</button>
+      </div>
+      <div class="content">
+        <h3>${c.name.common}</h3>
+        <div class="native">${c.name.official || ""}</div>
+        <div class="facts">
+          <div class="fact"><div class="k">Hauptstadt</div><div class="v">${capitalOf(c)}</div></div>
+          <div class="fact"><div class="k">Bevölkerung</div><div class="v">${popOf(c)}</div></div>
+          <div class="fact"><div class="k">Fläche</div><div class="v">${c.area ? nf.format(c.area) + " km²" : "—"}</div></div>
+          <div class="fact"><div class="k">Dichte</div><div class="v">${density != null ? density + " /km²" : "—"}</div></div>
+          <div class="fact wide"><div class="k">Währung</div><div class="v">${currencyOf(c)}</div></div>
+          <div class="fact wide"><div class="k">Sprachen</div><div class="v">${languagesOf(c)}</div></div>
+          <div class="fact"><div class="k">Region</div><div class="v">${c.region || "—"}</div></div>
+          <div class="fact"><div class="k">Subregion</div><div class="v">${c.subregion || "—"}</div></div>
+        </div>
+        <button class="btn ghost" id="add-compare">⚖️ Zum Vergleich hinzufügen</button>
+      </div>`;
+    $("#overlay").classList.add("open");
+    $("#modal-close").addEventListener("click", closeDetail);
+    $("#add-compare").addEventListener("click", () => { addToCompare(c.cca3); closeDetail(); });
+  }
+  function closeDetail() { $("#overlay").classList.remove("open"); }
+
+  // ── Karte ────────────────────────────────────────────────────────────────────
+  async function initMap() {
+    if (mapReady) return;
+    mapReady = true;
+    map = L.map("map", { worldCopyJump: true, minZoom: 1, attributionControl: false })
+      .setView([25, 10], 2);
+
+    try {
+      const res = await fetch(GEOJSON_URL);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const geo = await res.json();
+
+      const style = { weight: 1, color: getCss("--map-stroke"), fillColor: getCss("--map-fill"), fillOpacity: 1 };
+      geoLayer = L.geoJSON(geo, {
+        style,
+        onEachFeature: (feature, layer) => {
+          const code = feature.id;                 // ISO-3-Code
+          const country = byCca3.get(code);
+          const name = country ? country.name.common : (feature.properties && feature.properties.name) || code;
+          layer.bindTooltip(name, { sticky: true });
+          layer.on({
+            mouseover: () => layer.setStyle({ fillColor: getCss("--accent"), weight: 1.5 }),
+            mouseout:  () => geoLayer.resetStyle(layer),
+            click:     () => { if (country) openDetail(country.cca3); }
+          });
+        }
+      }).addTo(map);
+
+      $("#map-hint").textContent = "Tipp: Über ein Land fahren zeigt den Namen, ein Klick die Details.";
+    } catch (e) {
+      $("#map-hint").textContent = "Die Kartendaten konnten nicht geladen werden – Entdecken-Tab funktioniert weiterhin.";
+    }
+  }
+  const getCss = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+  // ── Vergleich ────────────────────────────────────────────────────────────────
+  function fillCompareSelects() {
+    const opts = '<option value="">– Land wählen –</option>' +
+      countries.map(c => `<option value="${c.cca3}">${c.name.common}</option>`).join("");
+    $("#cmp-a").innerHTML = opts;
+    $("#cmp-b").innerHTML = opts;
+  }
+  function addToCompare(cca3) {
+    // erstes freies Feld belegen, dann zum Vergleich-Tab wechseln
+    if (!$("#cmp-a").value) $("#cmp-a").value = cca3;
+    else $("#cmp-b").value = cca3;
+    renderCompare();
+    switchView("compare");
+  }
+  function renderCompare() {
+    const a = byCca3.get($("#cmp-a").value);
+    const b = byCca3.get($("#cmp-b").value);
+    const box = $("#cmp-result");
+    if (!a || !b) { box.innerHTML = '<p class="empty">Wähle zwei Länder für den Vergleich.</p>'; return; }
+
+    const head = (c) => `<div class="cmp-flag"><img src="${c.flags.png}" alt=""/>${c.name.common}</div>`;
+    const row = (label, va, vb, winner) => `
+      <tr>
+        <td class="metric">${label}</td>
+        <td class="${winner === 'a' ? 'win' : ''}">${va}</td>
+        <td class="${winner === 'b' ? 'win' : ''}">${vb}</td>
+      </tr>`;
+    const cmp = (x, y) => x === y ? "" : (x > y ? "a" : "b");
+    const densA = a.area ? Math.round(a.population / a.area) : 0;
+    const densB = b.area ? Math.round(b.population / b.area) : 0;
+
+    box.innerHTML = `
+      <table class="cmp-table">
+        <thead><tr><th></th><th>${head(a)}</th><th>${head(b)}</th></tr></thead>
+        <tbody>
+          ${row("Hauptstadt", capitalOf(a), capitalOf(b), "")}
+          ${row("Bevölkerung", popOf(a), popOf(b), cmp(a.population, b.population))}
+          ${row("Fläche (km²)", a.area ? nf.format(a.area) : "—", b.area ? nf.format(b.area) : "—", cmp(a.area || 0, b.area || 0))}
+          ${row("Dichte (/km²)", densA || "—", densB || "—", cmp(densA, densB))}
+          ${row("Region", a.region || "—", b.region || "—", "")}
+          ${row("Währung", currencyOf(a), currencyOf(b), "")}
+          ${row("Sprachen", languagesOf(a), languagesOf(b), "")}
+        </tbody>
+      </table>`;
+  }
+
+  // ── Quiz ─────────────────────────────────────────────────────────────────────
+  let quizMode = "flag";
+  let quizScore = 0, quizTotal = 0;
+
+  const sample = (arr, n) => {
+    const pool = [...arr], out = [];
+    while (out.length < n && pool.length) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    return out;
+  };
+  // nur Länder mit brauchbaren Daten für faire Fragen
+  const quizPool = () => countries.filter(c => c.population > 200000 && c.flags && c.flags.png);
+
+  function newQuestion() {
+    const pool = quizPool();
+    const card = $("#quiz-card");
+    const scoreBar = `<div class="quiz-score"><span>Richtig: <b>${quizScore}</b></span><span>Fragen: <b>${quizTotal}</b></span></div>`;
+
+    if (quizMode === "population") {
+      const [a, b] = sample(pool.filter(c => c.population), 2);
+      card.innerHTML = scoreBar + `
+        <div class="quiz-q">Welches Land hat mehr Einwohner?</div>
+        <div class="quiz-options">
+          ${[a, b].map(c => `<button data-cca3="${c.cca3}">
+            <img src="${c.flags.png}" alt="" style="width:42px;height:28px;object-fit:cover;border-radius:3px;vertical-align:middle;margin-right:8px"/>${c.name.common}</button>`).join("")}
+        </div>`;
+      const winner = a.population >= b.population ? a.cca3 : b.cca3;
+      bindOptions(card, winner, (btn) => `${nf.format(byCca3.get(btn.dataset.cca3).population)} Einw.`);
+      return;
+    }
+
+    const [answer, ...rest] = sample(pool, 4);
+    if (quizMode === "flag") {
+      card.innerHTML = scoreBar + `
+        <div class="quiz-q"><img src="${answer.flags.png}" alt="Flagge"/></div>
+        <div class="quiz-options">
+          ${shuffle([answer, ...rest]).map(c => `<button data-cca3="${c.cca3}">${c.name.common}</button>`).join("")}
+        </div>`;
+      bindOptions(card, answer.cca3);
+    } else { // capital
+      // nur Länder mit Hauptstadt
+      const withCap = pool.filter(c => c.capital && c.capital[0]);
+      const [ans, ...others] = sample(withCap, 4);
+      card.innerHTML = scoreBar + `
+        <div class="quiz-q">Was ist die Hauptstadt von <u>${ans.name.common}</u>?</div>
+        <div class="quiz-options">
+          ${shuffle([ans, ...others]).map(c => `<button data-cca3="${c.cca3}">${capitalOf(c)}</button>`).join("")}
+        </div>`;
+      bindOptions(card, ans.cca3);
+    }
+  }
+
+  const shuffle = (arr) => sample(arr, arr.length);
+
+  function bindOptions(card, correctCca3, extraLabel) {
+    $$(".quiz-options button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const chosen = btn.dataset.cca3;
+        $$(".quiz-options button").forEach(b => {
+          b.disabled = true;
+          if (b.dataset.cca3 === correctCca3) b.classList.add("correct");
+          else if (b === btn) b.classList.add("wrong");
+          if (extraLabel) b.insertAdjacentHTML("beforeend", ` <small style="opacity:.85">· ${extraLabel(b)}</small>`);
+        });
+        quizTotal++;
+        if (chosen === correctCca3) quizScore++;
+        card.insertAdjacentHTML("beforeend",
+          `<div class="quiz-next"><button class="btn" id="quiz-next">Nächste Frage →</button></div>`);
+        $("#quiz-next").addEventListener("click", newQuestion);
+      });
+    });
+  }
+
+  // ── Ansichten umschalten ───────────────────────────────────────────────────────
+  function switchView(name) {
+    $$("#nav button").forEach(b => b.classList.toggle("active", b.dataset.view === name));
+    $$(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + name));
+    if (name === "map") { initMap(); setTimeout(() => map && map.invalidateSize(), 150); }
+  }
+
+  // ── Theme ──────────────────────────────────────────────────────────────────────
+  function applyTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    $("#theme").textContent = t === "dark" ? "☀️" : "🌙";
+    localStorage.setItem("theme", t);
+    if (geoLayer) geoLayer.setStyle({ color: getCss("--map-stroke"), fillColor: getCss("--map-fill") });
+  }
+
+  // ── Initialisierung ─────────────────────────────────────────────────────────────
+  function bindUI() {
+    $$("#nav button").forEach(b => b.addEventListener("click", () => switchView(b.dataset.view)));
+    ["#search", "#region", "#sort"].forEach(sel => $(sel).addEventListener("input", renderGrid));
+    $("#cmp-a").addEventListener("change", renderCompare);
+    $("#cmp-b").addEventListener("change", renderCompare);
+    $("#overlay").addEventListener("click", (e) => { if (e.target.id === "overlay") closeDetail(); });
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDetail(); });
+    $("#theme").addEventListener("click", () =>
+      applyTheme(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark"));
+    $$("#quiz-modes button").forEach(b => b.addEventListener("click", () => {
+      quizMode = b.dataset.mode;
+      $$("#quiz-modes button").forEach(x => x.classList.toggle("active", x === b));
+      quizScore = 0; quizTotal = 0;
+      newQuestion();
+    }));
+  }
+
+  async function start() {
+    applyTheme(localStorage.getItem("theme") || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+    bindUI();
+    $("#explore-state").innerHTML = '<div class="loading"><div class="spin"></div>Länderdaten werden geladen…</div>';
+    try {
+      await loadCountries();
+      $("#explore-state").innerHTML = "";
+      renderGrid();
+      fillCompareSelects();
+      renderCompare();
+      newQuestion();
+    } catch (e) {
+      $("#explore-state").innerHTML =
+        '<p class="empty">Die Länderdaten konnten nicht geladen werden.<br>Bitte Internetverbindung prüfen und neu laden.</p>';
+    }
+  }
+
+  start();
+  </script>
+</body>
+</html>

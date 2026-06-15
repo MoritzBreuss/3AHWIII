@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 180" role="img" aria-labelledby="title desc">
+  <title id="title">Security Signal Map</title>
+  <desc id="desc">Abstrakte Netzwerkkarte mit Analysepunkten und Verbindungslinien.</desc>
+  <rect width="620" height="180" fill="#121719"/>
+  <g stroke="#273238" stroke-width="1">
+    <path d="M0 38H620M0 88H620M0 138H620M68 0V180M168 0V180M268 0V180M368 0V180M468 0V180M568 0V180"/>
+  </g>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M54 118C126 42 198 148 268 82S405 32 486 96s109 18 134-22" stroke="#47d18c" stroke-width="3"/>
+    <path d="M26 54C118 72 164 30 234 46s115 92 190 76 103-54 166-40" stroke="#57c7d4" stroke-width="2" opacity=".75"/>
+    <path d="M78 146c78-8 112-34 164-28s70 36 132 25 94-84 172-108" stroke="#f4b740" stroke-width="2" opacity=".72"/>
+  </g>
+  <g>
+    <circle cx="54" cy="118" r="7" fill="#47d18c"/>
+    <circle cx="150" cy="79" r="5" fill="#57c7d4"/>
+    <circle cx="268" cy="82" r="8" fill="#47d18c"/>
+    <circle cx="348" cy="49" r="5" fill="#ec5f5f"/>
+    <circle cx="486" cy="96" r="7" fill="#f4b740"/>
+    <circle cx="546" cy="38" r="5" fill="#57c7d4"/>
+    <circle cx="594" cy="74" r="8" fill="#47d18c"/>
+  </g>
+  <g fill="#f3f4f2" font-family="ui-sans-serif, system-ui, Segoe UI, sans-serif" font-size="11" opacity=".88">
+    <text x="34" y="98">DNS</text>
+    <text x="249" y="65">RDAP</text>
+    <text x="324" y="33">CVE</text>
+    <text x="464" y="120">RSS</text>
+  </g>
+</svg>
