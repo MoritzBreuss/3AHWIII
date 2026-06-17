@@ -1,0 +1,24 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row">
+            <span>Strava Running & Fitness Dashboard</span>
+            <a href="login">API Login</a>
+        </div>
+
+        <article class="content">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ein unerwarteter Fehler ist aufgetreten.
+    <a href="." class="reload">Neu laden</a>
+    <span class="dismiss">x</span>
+</div>

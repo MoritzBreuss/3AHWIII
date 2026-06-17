@@ -1,0 +1,612 @@
+@page "/"
+@rendermode InteractiveServer
+@inject StravaConnectionState State
+@inject StravaApiClient StravaApi
+@inject DashboardStorage Storage
+@inject NavigationManager Navigation
+
+<PageTitle>TrainSmart Dashboard</PageTitle>
+
+@if (!State.IsConnected)
+{
+    <section class="hero-panel">
+        <div class="hero-copy">
+            <p class="eyebrow">Persoenliches Fitness-Dashboard</p>
+            <h1>TrainSmart</h1>
+            <p class="hero-text">
+                Verbinde Strava und werte Laufdistanz, Trainingszeit, Pace, Herzfrequenz,
+                Hoehenmeter und Rekorde in einem klaren Dashboard aus.
+            </p>
+            <div class="button-row">
+                <a class="button button-primary" href="login">Strava verbinden</a>
+                <button class="button button-secondary" type="button" @onclick="LoadDemo">Demo-Daten laden</button>
+            </div>
+        </div>
+        <div class="hero-stats" aria-label="Dashboard Vorschau">
+            <div>
+                <span>Woche</span>
+                <strong>42,3 km</strong>
+            </div>
+            <div>
+                <span>Pace</span>
+                <strong>5:08 /km</strong>
+            </div>
+            <div>
+                <span>HF</span>
+                <strong>152 bpm</strong>
+            </div>
+        </div>
+    </section>
+}
+else if (!State.HasActivities)
+{
+    <section class="empty-panel">
+        <h1>Noch keine Aktivitäten geladen</h1>
+        <p>Aktualisiere die Strava-Daten oder lade Demo-Daten, um das Dashboard zu sehen.</p>
+        <div class="button-row">
+            <button class="button button-primary" type="button" @onclick="RefreshAsync" disabled="@isRefreshing">Aktualisieren</button>
+            <button class="button button-secondary" type="button" @onclick="LoadDemo">Demo-Daten laden</button>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <p class="alert-message">@errorMessage</p>
+        }
+    </section>
+}
+else
+{
+    var activities = State.Activities;
+    var primaryActivities = GetPrimaryActivities(activities);
+    var summary = BuildSummary(primaryActivities);
+    var weeklyTotals = BuildWeeklyTotals(activities);
+    var maxWeeklyKm = weeklyTotals.Count == 0 ? 0 : weeklyTotals.Max(week => week.Kilometers);
+    var totalWeeklyKm = weeklyTotals.Sum(week => week.Kilometers);
+    var paceRuns = GetPaceActivities(primaryActivities);
+    var paceChart = paceRuns.Count >= 2 ? BuildPaceChart(paceRuns) : null;
+    var distanceRecords = BuildDistanceRecords(primaryActivities);
+
+    <div class="dashboard">
+        <section class="dashboard-header">
+            <div class="athlete-block">
+                @if (!string.IsNullOrWhiteSpace(State.Athlete?.ProfileImageUrl))
+                {
+                    <img class="athlete-image" src="@State.Athlete.ProfileImageUrl" alt="Profilbild von @State.Athlete.DisplayName" />
+                }
+                else
+                {
+                    <div class="athlete-initials">@GetInitials(State.Athlete?.DisplayName)</div>
+                }
+                <div>
+                    <p class="eyebrow">@GetConnectionLabel()</p>
+                    <h1>@State.Athlete?.DisplayName</h1>
+                    <p class="muted">@BuildLocation(State.Athlete) · @activities.Count Aktivitaeten geladen</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="icon-button" title="Daten aktualisieren" type="button" @onclick="RefreshAsync" disabled="@(State.IsDemoMode || isRefreshing || string.IsNullOrWhiteSpace(State.AccessToken))">↻</button>
+                <button class="button button-secondary" type="button" @onclick="DisconnectAsync">Trennen</button>
+            </div>
+        </section>
+
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <p class="alert-message">@errorMessage</p>
+        }
+
+        <section class="metric-grid" aria-label="Trainingsstatistiken">
+            <article class="metric-card">
+                <span>Kilometer</span>
+                <strong>@FormatNumber(summary.TotalKilometers) km</strong>
+                <small>@summary.ActivityCount Einheiten</small>
+            </article>
+            <article class="metric-card">
+                <span>Trainingszeit</span>
+                <strong>@FormatDuration(summary.TotalSeconds)</strong>
+                <small>Moving Time</small>
+            </article>
+            <article class="metric-card">
+                <span>Pace</span>
+                <strong>@FormatPace(summary.AveragePaceSeconds)</strong>
+                <small>Durchschnitt</small>
+            </article>
+            <article class="metric-card">
+                <span>Herzfrequenz</span>
+                <strong>@FormatHeartRate(summary.AverageHeartRate)</strong>
+                <small>gewichteter Schnitt</small>
+            </article>
+            <article class="metric-card">
+                <span>Hoehenmeter</span>
+                <strong>@FormatNumber(summary.TotalElevation) m</strong>
+                <small>gesamt</small>
+            </article>
+            <article class="metric-card accent-card">
+                <span>Persoenliche Rekorde</span>
+                <strong>@summary.TotalPersonalRecords</strong>
+                <small>@summary.TotalAchievements Achievements</small>
+            </article>
+        </section>
+
+        <section class="insight-grid">
+            <article class="panel wide-panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Fortschritt</p>
+                        <h2>Kilometer pro Woche</h2>
+                    </div>
+                    <span class="chip">@FormatNumber(totalWeeklyKm) km · 8 Wochen</span>
+                </div>
+                <div class="bar-chart">
+                    @foreach (var week in weeklyTotals)
+                    {
+                        var height = GetBarHeight(week.Kilometers, maxWeeklyKm);
+                        var hasValue = week.Kilometers > 0;
+                        var isMax = hasValue && Math.Abs(week.Kilometers - maxWeeklyKm) < 0.001;
+                        <div class="bar-column @(isMax ? "is-max" : "") @(hasValue ? "" : "is-empty")">
+                            <span class="bar-value">@(hasValue ? week.Kilometers.ToString("0.#") : "–")</span>
+                            <div class="bar-track">
+                                <div class="bar-fill" style="@($"height:{height:0.#}%")"></div>
+                            </div>
+                            <small>@week.Label</small>
+                        </div>
+                    }
+                </div>
+            </article>
+
+            <article class="panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Pace Trend</p>
+                        <h2>Tempoentwicklung</h2>
+                    </div>
+                    <span class="chip">@paceRuns.Count Läufe</span>
+                </div>
+                @if (paceChart is not null)
+                {
+                    @((MarkupString)paceChart.Svg)
+                    <div class="chart-footer">
+                        <span>● schneller oben · langsamer unten</span>
+                        <span>Ø @paceChart.AverageLabel</span>
+                    </div>
+                }
+                else
+                {
+                    <p class="muted">Fuer den Pace-Trend werden mindestens zwei Laufaktivitaeten benoetigt.</p>
+                }
+            </article>
+        </section>
+
+        <section class="panel records-panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">Bestleistungen</p>
+                    <h2>Persönliche Rekorde</h2>
+                </div>
+                <span class="chip">@distanceRecords.Count Distanzen</span>
+            </div>
+            @if (distanceRecords.Count == 0)
+            {
+                <p class="muted">Noch keine Laufaktivitaeten geladen, um Bestzeiten zu berechnen.</p>
+            }
+            else
+            {
+                <div class="record-grid">
+                    @foreach (var record in distanceRecords)
+                    {
+                        var activity = record.Activity;
+                        <a class="record-card"
+                           href="@ActivityUrl(activity)"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           title="Aktivitaet '@activity.Name' in Strava oeffnen">
+                            <div class="record-card-top">
+                                <span class="record-tag">@record.Label</span>
+                                <span class="record-go" aria-hidden="true">↗</span>
+                            </div>
+                            <strong class="record-time">@FormatClock(activity.MovingTimeSeconds)</strong>
+                            <div class="record-figures">
+                                <span>@FormatNumber(activity.DistanceKilometers) km</span>
+                                <span>@FormatPace(GetPaceSeconds(activity))</span>
+                            </div>
+                            <small class="record-sub">@activity.Name · @activity.StartDateLocal.ToString("dd.MM.yyyy")</small>
+                        </a>
+                    }
+                </div>
+            }
+        </section>
+
+        <section>
+            <article class="panel wide-panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">Aktivitaeten</p>
+                        <h2>Letzte Einheiten</h2>
+                    </div>
+                    <a class="text-link" href="activities">Alle anzeigen</a>
+                </div>
+                <div class="table-wrap">
+                    <table class="activity-table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Datum</th>
+                                <th>Distanz</th>
+                                <th>Pace</th>
+                                <th>HF</th>
+                                <th>HM</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var activity in activities.Take(6))
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@activity.Name</strong>
+                                        <span>@activity.DisplayType</span>
+                                    </td>
+                                    <td>@activity.StartDateLocal.ToString("dd.MM.yyyy")</td>
+                                    <td>@FormatNumber(activity.DistanceKilometers) km</td>
+                                    <td>@FormatPace(GetPaceSeconds(activity))</td>
+                                    <td>@FormatHeartRate(activity.AverageHeartRate)</td>
+                                    <td>@FormatNumber(activity.TotalElevationGain) m</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </div>
+}
+
+@code {
+    private bool isRefreshing;
+    private string? errorMessage;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !State.IsConnected)
+        {
+            try
+            {
+                if (await Storage.TryLoadAsync(State))
+                {
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // If browser storage is unavailable, the live Strava flow still works.
+            }
+        }
+    }
+
+    private async Task RefreshAsync()
+    {
+        errorMessage = null;
+        isRefreshing = true;
+
+        try
+        {
+            await StravaApi.RefreshDashboardAsync(State);
+            await Storage.SaveAsync(State);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isRefreshing = false;
+        }
+    }
+
+    private async Task LoadDemo()
+    {
+        State.LoadDemoData();
+        await Storage.SaveAsync(State);
+        Navigation.NavigateTo("/");
+    }
+
+    private async Task DisconnectAsync()
+    {
+        State.Disconnect();
+        await Storage.ClearAsync();
+        Navigation.NavigateTo("/");
+    }
+
+    private string GetConnectionLabel()
+    {
+        if (State.IsDemoMode)
+        {
+            return "Demo-Modus";
+        }
+
+        return string.IsNullOrWhiteSpace(State.AccessToken) ? "Zwischengespeichert" : "Strava verbunden";
+    }
+
+    private static List<StravaActivity> GetPrimaryActivities(IReadOnlyList<StravaActivity> activities)
+    {
+        var runs = activities.Where(activity => activity.IsRun).ToList();
+        return runs.Count > 0 ? runs : activities.ToList();
+    }
+
+    private static DashboardSummary BuildSummary(IReadOnlyList<StravaActivity> activities)
+    {
+        var totalKilometers = activities.Sum(activity => activity.DistanceKilometers);
+        var totalSeconds = activities.Sum(activity => activity.MovingTimeSeconds);
+        var heartRateSamples = activities
+            .Where(activity => activity.AverageHeartRate.HasValue && activity.MovingTimeSeconds > 0)
+            .ToList();
+        double? weightedHeartRate = heartRateSamples.Count == 0
+            ? null
+            : heartRateSamples.Sum(activity => activity.AverageHeartRate!.Value * activity.MovingTimeSeconds)
+                / heartRateSamples.Sum(activity => activity.MovingTimeSeconds);
+
+        return new DashboardSummary(
+            activities.Count,
+            totalKilometers,
+            totalSeconds,
+            totalKilometers > 0 ? totalSeconds / totalKilometers : 0,
+            weightedHeartRate,
+            activities.Sum(activity => activity.TotalElevationGain),
+            activities.Sum(activity => activity.PrCount),
+            activities.Sum(activity => activity.AchievementCount));
+    }
+
+    private static List<WeeklyTotal> BuildWeeklyTotals(IReadOnlyList<StravaActivity> activities)
+    {
+        var end = StartOfWeek(DateTime.Today);
+        return Enumerable.Range(0, 8)
+            .Select(offset => end.AddDays((offset - 7) * 7))
+            .Select(weekStart =>
+            {
+                var weekEnd = weekStart.AddDays(7);
+                var kilometers = activities
+                    .Where(activity => activity.StartDateLocal.Date >= weekStart && activity.StartDateLocal.Date < weekEnd)
+                    .Sum(activity => activity.DistanceKilometers);
+
+                return new WeeklyTotal(weekStart.ToString("dd.MM."), kilometers);
+            })
+            .ToList();
+    }
+
+    private static DateTime StartOfWeek(DateTime date)
+    {
+        var diff = ((int)date.DayOfWeek + 6) % 7;
+        return date.Date.AddDays(-diff);
+    }
+
+    private static double GetBarHeight(double kilometers, double maxKilometers)
+    {
+        if (kilometers <= 0 || maxKilometers <= 0)
+        {
+            return 0;
+        }
+
+        // Keep very small weeks visible without exaggerating them.
+        return Math.Max(6, kilometers / maxKilometers * 100);
+    }
+
+    private static List<StravaActivity> GetPaceActivities(IReadOnlyList<StravaActivity> activities)
+    {
+        return activities
+            .Where(activity => activity.DistanceKilometers > 0 && activity.MovingTimeSeconds > 0)
+            .OrderBy(activity => activity.StartDateLocal)
+            .TakeLast(10)
+            .ToList();
+    }
+
+    private static PaceChart BuildPaceChart(IReadOnlyList<StravaActivity> runs)
+    {
+        // Plot area inside the 720 x 280 viewBox (room for axis labels left and below).
+        const double left = 54;
+        const double right = 700;
+        const double top = 24;
+        const double bottom = 234;
+
+        var paces = runs.Select(GetPaceSeconds).ToList();
+        var min = paces.Min();
+        var max = paces.Max();
+        // Add a little headroom so the line never touches the very top/bottom edge.
+        var padding = Math.Max(8, (max - min) * 0.18);
+        var lo = min - padding;
+        var span = Math.Max(1, max + padding - lo);
+
+        double XAt(int index) => runs.Count == 1
+            ? (left + right) / 2
+            : left + index * (right - left) / (runs.Count - 1);
+
+        // Faster pace (fewer seconds) sits higher on the chart.
+        double YAt(double pace) => top + (pace - lo) / span * (bottom - top);
+
+        var points = runs
+            .Select((activity, index) => new PacePoint(
+                XAt(index),
+                YAt(GetPaceSeconds(activity)),
+                $"{activity.Name}: {FormatPace(GetPaceSeconds(activity))}"))
+            .ToList();
+
+        var linePoints = string.Join(" ", points.Select(point => $"{N(point.X)},{N(point.Y)}"));
+        var areaPoints = $"{N(points[0].X)},{N(bottom)} {linePoints} {N(points[^1].X)},{N(bottom)}";
+
+        // Three reference lines: fastest, middle, slowest pace actually run.
+        var gridLines = new[] { min, (min + max) / 2, max }
+            .Distinct()
+            .Select(pace => new PaceGrid(YAt(pace), FormatPaceShort(pace)))
+            .ToList();
+
+        var svg = new System.Text.StringBuilder();
+        svg.Append("<svg class=\"pace-chart\" viewBox=\"0 0 720 280\" preserveAspectRatio=\"xMidYMid meet\" role=\"img\" aria-label=\"Pace Verlauf der letzten Laeufe\">");
+        svg.Append("<defs><linearGradient id=\"paceFill\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">");
+        svg.Append("<stop offset=\"0%\" stop-color=\"#315c9f\" stop-opacity=\"0.28\"></stop>");
+        svg.Append("<stop offset=\"100%\" stop-color=\"#315c9f\" stop-opacity=\"0\"></stop>");
+        svg.Append("</linearGradient></defs>");
+
+        foreach (var grid in gridLines)
+        {
+            svg.Append($"<line class=\"pace-grid\" x1=\"{N(left)}\" x2=\"{N(right)}\" y1=\"{N(grid.Y)}\" y2=\"{N(grid.Y)}\"></line>");
+            svg.Append($"<text class=\"pace-axis\" x=\"{N(left - 6)}\" y=\"{N(grid.Y + 4)}\" text-anchor=\"end\">{Escape(grid.Label)}</text>");
+        }
+
+        svg.Append($"<polygon class=\"pace-area\" points=\"{areaPoints}\"></polygon>");
+        svg.Append($"<polyline class=\"pace-line\" points=\"{linePoints}\"></polyline>");
+
+        foreach (var point in points)
+        {
+            svg.Append($"<circle class=\"pace-dot\" cx=\"{N(point.X)}\" cy=\"{N(point.Y)}\" r=\"5\"><title>{Escape(point.Label)}</title></circle>");
+        }
+
+        svg.Append($"<text class=\"pace-axis\" x=\"{N(left)}\" y=\"272\">{Escape(runs[0].StartDateLocal.ToString("dd.MM."))}</text>");
+        svg.Append($"<text class=\"pace-axis\" x=\"{N(right)}\" y=\"272\" text-anchor=\"end\">{Escape(runs[^1].StartDateLocal.ToString("dd.MM."))}</text>");
+        svg.Append("</svg>");
+
+        return new PaceChart(svg.ToString(), FormatPace(paces.Average()));
+    }
+
+    // Culture-invariant number formatting so SVG coordinates never use a decimal comma.
+    private static string N(double value) =>
+        value.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string Escape(string value) =>
+        System.Net.WebUtility.HtmlEncode(value);
+
+    private static readonly (string Label, double Min, double Max)[] DistanceBuckets =
+    {
+        ("5 km", 4.6, 5.6),
+        ("10 km", 9.4, 10.9),
+        ("Halbmarathon", 20.4, 22.0),
+        ("Marathon", 41.5, 43.5)
+    };
+
+    private static List<DistanceRecord> BuildDistanceRecords(IReadOnlyList<StravaActivity> runs)
+    {
+        var records = new List<DistanceRecord>();
+
+        foreach (var bucket in DistanceBuckets)
+        {
+            var best = runs
+                .Where(run => run.MovingTimeSeconds > 0
+                    && run.DistanceKilometers >= bucket.Min
+                    && run.DistanceKilometers < bucket.Max)
+                .OrderBy(GetPaceSeconds)
+                .FirstOrDefault();
+
+            if (best is not null)
+            {
+                records.Add(new DistanceRecord(bucket.Label, best));
+            }
+        }
+
+        var longest = runs
+            .Where(run => run.DistanceKilometers > 0)
+            .OrderByDescending(run => run.DistanceKilometers)
+            .FirstOrDefault();
+        if (longest is not null)
+        {
+            records.Add(new DistanceRecord("Längster Lauf", longest));
+        }
+
+        var fastest = runs
+            .Where(run => run.MovingTimeSeconds > 0 && run.DistanceKilometers >= 1)
+            .OrderBy(GetPaceSeconds)
+            .FirstOrDefault();
+        if (fastest is not null)
+        {
+            records.Add(new DistanceRecord("Schnellste Pace", fastest));
+        }
+
+        return records;
+    }
+
+    private static string ActivityUrl(StravaActivity activity) =>
+        $"https://www.strava.com/activities/{activity.Id}";
+
+    private static double GetPaceSeconds(StravaActivity activity)
+    {
+        return activity.DistanceKilometers <= 0 ? 0 : activity.MovingTimeSeconds / activity.DistanceKilometers;
+    }
+
+    private static string FormatPace(double secondsPerKilometer)
+    {
+        if (secondsPerKilometer <= 0)
+        {
+            return "-";
+        }
+
+        var pace = TimeSpan.FromSeconds(secondsPerKilometer);
+        return $"{(int)pace.TotalMinutes}:{pace.Seconds:00} /km";
+    }
+
+    private static string FormatPaceShort(double secondsPerKilometer)
+    {
+        if (secondsPerKilometer <= 0)
+        {
+            return "-";
+        }
+
+        var pace = TimeSpan.FromSeconds(secondsPerKilometer);
+        return $"{(int)pace.TotalMinutes}:{pace.Seconds:00}";
+    }
+
+    private static string FormatClock(int seconds)
+    {
+        var time = TimeSpan.FromSeconds(seconds);
+        return time.TotalHours >= 1
+            ? $"{(int)time.TotalHours}:{time.Minutes:00}:{time.Seconds:00}"
+            : $"{time.Minutes}:{time.Seconds:00}";
+    }
+
+    private static string FormatDuration(int seconds)
+    {
+        var duration = TimeSpan.FromSeconds(seconds);
+        return duration.TotalHours >= 1
+            ? $"{(int)duration.TotalHours}h {duration.Minutes:00}m"
+            : $"{duration.Minutes}m";
+    }
+
+    private static string FormatNumber(double value) => value.ToString(value >= 100 ? "0" : "0.0");
+
+    private static string FormatHeartRate(double? heartRate) => heartRate.HasValue ? $"{heartRate.Value:0} bpm" : "-";
+
+    private static string BuildLocation(StravaAthlete? athlete)
+    {
+        var parts = new[] { athlete?.City, athlete?.Country }
+            .Where(part => !string.IsNullOrWhiteSpace(part));
+        var location = string.Join(", ", parts);
+        return string.IsNullOrWhiteSpace(location) ? "Profil" : location;
+    }
+
+    private static string GetInitials(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "TS";
+        }
+
+        return string.Concat(name
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Take(2)
+            .Select(part => part[0]))
+            .ToUpperInvariant();
+    }
+
+    private sealed record DashboardSummary(
+        int ActivityCount,
+        double TotalKilometers,
+        int TotalSeconds,
+        double AveragePaceSeconds,
+        double? AverageHeartRate,
+        double TotalElevation,
+        int TotalPersonalRecords,
+        int TotalAchievements);
+
+    private sealed record WeeklyTotal(string Label, double Kilometers);
+
+    private sealed record PacePoint(double X, double Y, string Label);
+
+    private sealed record PaceGrid(double Y, string Label);
+
+    private sealed record PaceChart(string Svg, string AverageLabel);
+
+    private sealed record DistanceRecord(string Label, StravaActivity Activity);
+}

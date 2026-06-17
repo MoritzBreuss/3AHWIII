@@ -1,0 +1,349 @@
+@page "/login"
+@page "/auth/callback"
+@rendermode InteractiveServer
+@inject StravaApiClient StravaApi
+@inject StravaConnectionState State
+@inject DashboardStorage Storage
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Strava verbinden</PageTitle>
+
+<section class="connect-page">
+    <div class="connect-header">
+        <p class="eyebrow">Strava API Login</p>
+        <h1>TrainSmart mit Strava verbinden</h1>
+        <p>
+            Trage die App-Daten aus dem Strava API Dashboard ein, oeffne den Freigabelink
+            und verbinde danach mit dem Authorization Code oder einem Refresh Token.
+        </p>
+    </div>
+
+    <div class="connect-grid">
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">Schritt 1</p>
+                    <h2>App-Zugangsdaten</h2>
+                </div>
+            </div>
+
+            <label class="form-label" for="client-id">Client ID</label>
+            <input id="client-id" class="form-input" autocomplete="off" @bind="form.ClientId" @bind:event="oninput" />
+
+            <label class="form-label" for="client-secret">Client Secret</label>
+            <input id="client-secret" class="form-input" type="password" autocomplete="off" @bind="form.ClientSecret" @bind:event="oninput" />
+
+            <button class="button button-secondary full-width" type="button" @onclick="BuildAuthorizationUrl">
+                Freigabelink erstellen
+            </button>
+
+            @if (!string.IsNullOrWhiteSpace(authorizationUrl))
+            {
+                <button class="button button-primary full-width" type="button" @onclick="OpenAuthorizationAsync">
+                    Strava-Freigabe oeffnen
+                </button>
+                <p class="muted small-text">Callback URL: @RedirectUri</p>
+            }
+        </article>
+
+        <article class="panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">Schritt 2</p>
+                    <h2>Token erzeugen</h2>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(ReturnedScope))
+            {
+                <p class="@GetScopeMessageClass()">Strava hat folgende Scopes bestaetigt: @ReturnedScope</p>
+            }
+
+            <label class="form-label" for="auth-code">Authorization Code</label>
+            <input id="auth-code" class="form-input" autocomplete="off" @bind="form.AuthorizationCode" @bind:event="oninput" />
+
+            <button class="button button-primary full-width" type="button" @onclick="ConnectWithAuthorizationCodeAsync" disabled="@isBusy">
+                Mit Code verbinden
+            </button>
+
+            <div class="divider"><span>oder</span></div>
+
+            <label class="form-label" for="refresh-token">Refresh Token</label>
+            <input id="refresh-token" class="form-input" autocomplete="off" @bind="form.RefreshToken" @bind:event="oninput" />
+
+            <button class="button button-secondary full-width" type="button" @onclick="ConnectWithRefreshTokenAsync" disabled="@isBusy">
+                Mit Refresh Token verbinden
+            </button>
+        </article>
+    </div>
+
+    <div class="button-row">
+        <button class="button button-secondary" type="button" @onclick="LoadDemoAsync">Demo-Dashboard laden</button>
+        @if (State.IsConnected)
+        {
+            <a class="button button-primary" href="">Zum Dashboard</a>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <p class="alert-message">@errorMessage</p>
+    }
+</section>
+
+@code {
+    [SupplyParameterFromQuery(Name = "code")]
+    public string? Code { get; set; }
+
+    [SupplyParameterFromQuery(Name = "scope")]
+    public string? ReturnedScope { get; set; }
+
+    private const string ClientIdStorageKey = "trainsmart.strava.clientId";
+    private const string ClientSecretStorageKey = "trainsmart.strava.clientSecret";
+
+    private readonly LoginForm form = new();
+    private string? authorizationUrl;
+    private string? errorMessage;
+    private bool isBusy;
+    private bool autoExchangeStarted;
+
+    private string RedirectUri => Navigation.ToAbsoluteUri("auth/callback").ToString();
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrWhiteSpace(Code) && string.IsNullOrWhiteSpace(form.AuthorizationCode))
+        {
+            form.AuthorizationCode = Code;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        await RestoreCredentialsAsync();
+
+        if (!string.IsNullOrWhiteSpace(Code)
+            && !autoExchangeStarted
+            && !string.IsNullOrWhiteSpace(form.ClientId)
+            && !string.IsNullOrWhiteSpace(form.ClientSecret))
+        {
+            var scopeError = ValidateReturnedScopes();
+            if (scopeError is not null)
+            {
+                errorMessage = scopeError;
+                StateHasChanged();
+                return;
+            }
+
+            autoExchangeStarted = true;
+            await ConnectWithAuthorizationCodeAsync();
+            StateHasChanged();
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(Code) && string.IsNullOrWhiteSpace(form.ClientSecret))
+        {
+            errorMessage = "Authorization Code wurde uebernommen. Bitte Client ID und Client Secret eintragen und dann 'Mit Code verbinden' klicken.";
+        }
+
+        StateHasChanged();
+    }
+
+    private void BuildAuthorizationUrl()
+    {
+        errorMessage = ValidateCredentials();
+        if (errorMessage is not null)
+        {
+            authorizationUrl = null;
+            return;
+        }
+
+        authorizationUrl = StravaApi.CreateAuthorizationUrl(form.ClientId.Trim(), RedirectUri);
+    }
+
+    private async Task OpenAuthorizationAsync()
+    {
+        errorMessage = ValidateCredentials();
+        if (errorMessage is not null)
+        {
+            authorizationUrl = null;
+            return;
+        }
+
+        await SaveCredentialsAsync();
+        authorizationUrl = StravaApi.CreateAuthorizationUrl(form.ClientId.Trim(), RedirectUri);
+        Navigation.NavigateTo(authorizationUrl, forceLoad: true);
+    }
+
+    private Task ConnectWithAuthorizationCodeAsync()
+    {
+        var scopeError = ValidateReturnedScopes();
+        if (scopeError is not null)
+        {
+            errorMessage = scopeError;
+            return Task.CompletedTask;
+        }
+
+        if (string.IsNullOrWhiteSpace(form.AuthorizationCode))
+        {
+            errorMessage = "Bitte den Authorization Code eintragen.";
+            return Task.CompletedTask;
+        }
+
+        return ConnectAsync(() => StravaApi.ExchangeCodeAsync(
+            form.ClientId.Trim(),
+            form.ClientSecret.Trim(),
+            form.AuthorizationCode.Trim()));
+    }
+
+    private Task ConnectWithRefreshTokenAsync()
+    {
+        if (string.IsNullOrWhiteSpace(form.RefreshToken))
+        {
+            errorMessage = "Bitte einen Refresh Token eintragen.";
+            return Task.CompletedTask;
+        }
+
+        return ConnectAsync(() => StravaApi.RefreshTokenAsync(
+            form.ClientId.Trim(),
+            form.ClientSecret.Trim(),
+            form.RefreshToken.Trim()));
+    }
+
+    private async Task ConnectAsync(Func<Task<StravaTokenResponse>> tokenFactory)
+    {
+        errorMessage = ValidateCredentials();
+        if (errorMessage is not null)
+        {
+            return;
+        }
+
+        isBusy = true;
+
+        try
+        {
+            State.ConfigureCredentials(form.ClientId, form.ClientSecret);
+            var token = await tokenFactory();
+            State.ApplyToken(token);
+
+            var grantedScopeError = ValidateGrantedScopes(token.Scope);
+            if (grantedScopeError is not null)
+            {
+                errorMessage = grantedScopeError;
+                return;
+            }
+
+            await StravaApi.RefreshDashboardAsync(State);
+            await Storage.SaveAsync(State);
+            await ClearCredentialsAsync();
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
+    }
+
+    private string? ValidateCredentials()
+    {
+        if (string.IsNullOrWhiteSpace(form.ClientId))
+        {
+            return "Bitte die Strava Client ID eintragen.";
+        }
+
+        if (string.IsNullOrWhiteSpace(form.ClientSecret))
+        {
+            return "Bitte das Strava Client Secret eintragen.";
+        }
+
+        return null;
+    }
+
+    private string? ValidateReturnedScopes()
+    {
+        if (string.IsNullOrWhiteSpace(ReturnedScope))
+        {
+            return null;
+        }
+
+        var scopes = ReturnedScope
+            .Split([' ', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!scopes.Contains("activity:read") && !scopes.Contains("activity:read_all"))
+        {
+            return "Strava hat keine Aktivitaetenfreigabe bestaetigt. Bitte die Freigabe erneut oeffnen und activity:read_all angehakt lassen.";
+        }
+
+        return null;
+    }
+
+    private static string? ValidateGrantedScopes(string? grantedScope)
+    {
+        var scopes = (grantedScope ?? string.Empty)
+            .Split([' ', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!scopes.Contains("activity:read") && !scopes.Contains("activity:read_all"))
+        {
+            return "Dieser Token hat nur den Scope 'read' und darf keine Aktivitaeten lesen. "
+                + "Die Standard-Tokens aus den Strava-Einstellungen reichen nicht aus. "
+                + "Bitte oben 'Freigabelink erstellen' und 'Strava-Freigabe oeffnen' nutzen und dabei den Aktivitaeten-Zugriff (activity:read_all) erlauben.";
+        }
+
+        return null;
+    }
+
+    private string GetScopeMessageClass() => ValidateReturnedScopes() is null ? "success-message" : "alert-message";
+
+    private async Task SaveCredentialsAsync()
+    {
+        await JS.InvokeVoidAsync("sessionStorage.setItem", ClientIdStorageKey, form.ClientId.Trim());
+        await JS.InvokeVoidAsync("sessionStorage.setItem", ClientSecretStorageKey, form.ClientSecret.Trim());
+    }
+
+    private async Task RestoreCredentialsAsync()
+    {
+        form.ClientId = await JS.InvokeAsync<string?>("sessionStorage.getItem", ClientIdStorageKey) ?? form.ClientId;
+        form.ClientSecret = await JS.InvokeAsync<string?>("sessionStorage.getItem", ClientSecretStorageKey) ?? form.ClientSecret;
+
+        if (!string.IsNullOrWhiteSpace(form.ClientId))
+        {
+            authorizationUrl = StravaApi.CreateAuthorizationUrl(form.ClientId.Trim(), RedirectUri);
+        }
+    }
+
+    private async Task ClearCredentialsAsync()
+    {
+        await JS.InvokeVoidAsync("sessionStorage.removeItem", ClientIdStorageKey);
+        await JS.InvokeVoidAsync("sessionStorage.removeItem", ClientSecretStorageKey);
+    }
+
+    private async Task LoadDemoAsync()
+    {
+        State.LoadDemoData();
+        await Storage.SaveAsync(State);
+        Navigation.NavigateTo("/");
+    }
+
+    private sealed class LoginForm
+    {
+        public string ClientId { get; set; } = string.Empty;
+
+        public string ClientSecret { get; set; } = string.Empty;
+
+        public string AuthorizationCode { get; set; } = string.Empty;
+
+        public string RefreshToken { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,133 @@
+@page "/activities"
+@rendermode InteractiveServer
+@inject StravaConnectionState State
+@inject DashboardStorage Storage
+
+<PageTitle>Aktivitaeten</PageTitle>
+
+@if (!State.IsConnected)
+{
+    <section class="empty-panel">
+        <h1>Aktivitaeten</h1>
+        <p>Verbinde zuerst Strava oder lade Demo-Daten, um die Tabelle zu verwenden.</p>
+        <a class="button button-primary" href="login">Strava verbinden</a>
+    </section>
+}
+else
+{
+    var filteredActivities = FilteredActivities.ToList();
+    var types = State.Activities
+        .Select(activity => activity.DisplayType)
+        .Where(type => !string.IsNullOrWhiteSpace(type))
+        .Distinct()
+        .Order()
+        .ToList();
+
+    <section class="activities-page">
+        <div class="dashboard-header">
+            <div>
+                <p class="eyebrow">Strava Aktivitäten</p>
+                <h1>Aktivitätsverlauf</h1>
+                <p class="muted">@filteredActivities.Count von @State.Activities.Count Aktivitäten angezeigt</p>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <input class="form-input" placeholder="Nach Name suchen" @bind="searchText" @bind:event="oninput" />
+            <select class="form-input" @bind="selectedType">
+                <option value="">Alle Sportarten</option>
+                @foreach (var type in types)
+                {
+                    <option value="@type">@type</option>
+                }
+            </select>
+        </div>
+
+        <div class="table-wrap full-table">
+            <table class="activity-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Typ</th>
+                        <th>Datum</th>
+                        <th>Distanz</th>
+                        <th>Zeit</th>
+                        <th>Pace</th>
+                        <th>Herzfrequenz</th>
+                        <th>Hoehenmeter</th>
+                        <th>PR</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var activity in filteredActivities)
+                    {
+                        <tr>
+                            <td><strong>@activity.Name</strong></td>
+                            <td>@activity.DisplayType</td>
+                            <td>@activity.StartDateLocal.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>@FormatNumber(activity.DistanceKilometers) km</td>
+                            <td>@FormatDuration(activity.MovingTimeSeconds)</td>
+                            <td>@FormatPace(activity)</td>
+                            <td>@FormatHeartRate(activity.AverageHeartRate)</td>
+                            <td>@FormatNumber(activity.TotalElevationGain) m</td>
+                            <td>@activity.PrCount</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@code {
+    private string searchText = string.Empty;
+    private string selectedType = string.Empty;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !State.IsConnected)
+        {
+            try
+            {
+                if (await Storage.TryLoadAsync(State))
+                {
+                    StateHasChanged();
+                }
+            }
+            catch
+            {
+                // The page can still show the connect state when browser storage is unavailable.
+            }
+        }
+    }
+
+    private IEnumerable<StravaActivity> FilteredActivities => State.Activities
+        .Where(activity => string.IsNullOrWhiteSpace(searchText)
+            || activity.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+        .Where(activity => string.IsNullOrWhiteSpace(selectedType)
+            || activity.DisplayType.Equals(selectedType, StringComparison.OrdinalIgnoreCase))
+        .OrderByDescending(activity => activity.StartDateLocal);
+
+    private static string FormatNumber(double value) => value.ToString(value >= 100 ? "0" : "0.0");
+
+    private static string FormatDuration(int seconds)
+    {
+        var duration = TimeSpan.FromSeconds(seconds);
+        return duration.TotalHours >= 1
+            ? $"{(int)duration.TotalHours}h {duration.Minutes:00}m"
+            : $"{duration.Minutes}m";
+    }
+
+    private static string FormatPace(StravaActivity activity)
+    {
+        if (activity.DistanceKilometers <= 0)
+        {
+            return "-";
+        }
+
+        var pace = TimeSpan.FromSeconds(activity.MovingTimeSeconds / activity.DistanceKilometers);
+        return $"{(int)pace.TotalMinutes}:{pace.Seconds:00} /km";
+    }
+
+    private static string FormatHeartRate(double? heartRate) => heartRate.HasValue ? $"{heartRate.Value:0} bpm" : "-";
+}
